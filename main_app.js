@@ -114,7 +114,10 @@ const buddhistQuotes = [
     let dailyQuoteDisplayed = false;
     let fishes = [];
     let foods = []; // Array to store food particles
-    const MAX_FISHES = Math.floor(Math.random() * (10 - 4 + 1)) + 4; // 4 到 8 隻魚
+    const MAX_FISHES = Math.floor(Math.random() * (8 - 4 + 1)) + 5; // 4 到 8 隻魚
+
+    // Available food emojis based on your request
+    const availableFoodEmojis = ['🍚', '🌾', '🌽', '🍞'];
 
     // 可用的魚 Emoji 列表
     const availableFishEmojis = ['🐟', '🐠', '🐡', '🦈', '🐳', '🐋', '🐙', '🦑', '🦐', '🦀'];
@@ -155,7 +158,9 @@ const buddhistQuotes = [
             const foodY = event.clientY - rect.top;
 
             if (foods.length < 20) { // 限制食物顆粒的最大數量
-                const foodItem = new Food(foodX, foodY, aquariumContainer); // Food class is now defined in fish_new_stages.js
+                // Select a random food emoji
+                const randomFoodEmoji = availableFoodEmojis[Math.floor(Math.random() * availableFoodEmojis.length)];
+                const foodItem = new Food(foodX, foodY, aquariumContainer, randomFoodEmoji);
                 foods.push(foodItem);
             }
         }
@@ -231,6 +236,13 @@ const buddhistQuotes = [
         fishes.forEach(fish => {
             // fish.updateGrowth(90); // Growth functionality removed
             fish.update(deltaTime, fishes, foods); // Pass all fishes and foods
+        });
+
+        // Update food particles (for sinking)
+        foods.forEach(food => {
+            if (!food.isEaten) {
+                food.update(deltaTime);
+            }
         });
 
         // 清理被吃掉的食物

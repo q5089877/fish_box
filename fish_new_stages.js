@@ -1,21 +1,40 @@
 // Food class
 class Food {
-    constructor(x, y, aquariumContainer) {
+    constructor(x, y, aquariumContainer, foodEmoji) {
         this.x = x;
         this.y = y;
-        this.size = 10; // Food particle size in pixels
+        this.emoji = foodEmoji;
+        this.size = 20; // Food particle size in pixels
         this.element = document.createElement('div');
         this.element.className = 'food-particle';
+        this.element.textContent = this.emoji; // Display the emoji
         this.element.style.position = 'absolute';
-        this.element.style.width = `${this.size}px`;
-        this.element.style.height = `${this.size}px`;
-        this.element.style.backgroundColor = '#saddlebrown'; // A brownish color for food
-        this.element.style.borderRadius = '50%';
-        this.element.style.left = `${this.x - this.size / 2}px`;
-        this.element.style.top = `${this.y - this.size / 2}px`;
+        this.element.style.fontSize = `${this.size}px`;
+        // Center the emoji at (x,y)
+        this.element.style.left = `${this.x}px`;
+        this.element.style.top = `${this.y}px`;
+        this.element.style.transform = 'translate(-50%, -50%)';
         this.element.style.zIndex = '50'; // Ensure food is visible
+        this.element.style.userSelect = 'none'; // Prevent text selection on food
+
         aquariumContainer.appendChild(this.element);
         this.isEaten = false;
+
+        // For sinking/drifting behavior
+        this.sinkSpeed = 10 + Math.random() * 20; // Pixels per second
+        this.aquariumHeight = aquariumContainer.clientHeight;
+    }
+
+    update(deltaTime) {
+        if (this.isEaten || !this.element) return;
+
+        this.y += this.sinkSpeed * deltaTime;
+
+        const bottomBoundary = this.aquariumHeight - (this.size / 2);
+        if (this.y > bottomBoundary) {
+            this.y = bottomBoundary;
+        }
+        this.element.style.top = `${this.y}px`;
     }
 
     remove() {
