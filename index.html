@@ -27,6 +27,13 @@
             text-align: center;
             z-index: 10;
             cursor: pointer; /* 提示可以點擊 */
+            /* 調整 quote-container 的佈局以更好地居中文字 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px; /* 給容器一個最小高度 */
+            width: 80%; /* 限制寬度 */
+            box-sizing: border-box;
         }
 
         #aquarium-container {
@@ -40,6 +47,12 @@
             overflow: hidden; /* 魚兒不會游出去 */
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             border-radius: 10px;
+        }
+
+        #quote-text {
+            font-size: 28px; /* 調整這個數值來改變字體大小 */
+            line-height: 1.6; /* 增加行高以提高可讀性 */
+            color: #333; /* 可以調整文字顏色 */
         }
 
         .fish {

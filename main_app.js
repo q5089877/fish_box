@@ -151,18 +151,15 @@ const buddhistQuotes = [
 
     // 顯示每日語錄
     function displayDailyQuote() {
-        const today = new Date().toDateString();
-        const lastQuoteDate = localStorage.getItem('lastQuoteDate');
+        // 每次都隨機選擇一句新的佛語
+        const randomIndex = Math.floor(Math.random() * buddhistQuotes.length);
+        const quote = buddhistQuotes[randomIndex];
+        quoteTextElement.textContent = quote.text;
 
-        if (lastQuoteDate !== today || !localStorage.getItem('dailyQuoteText')) {
-            const randomIndex = Math.floor(Math.random() * buddhistQuotes.length);
-            const quote = buddhistQuotes[randomIndex];
-            quoteTextElement.textContent = quote.text;
-            localStorage.setItem('dailyQuoteText', quote.text);
-            localStorage.setItem('lastQuoteDate', today);
-        } else {
-            quoteTextElement.textContent = localStorage.getItem('dailyQuoteText');
-        }
+        // 由於現在每次都載入新的，不再需要將語錄存儲到 localStorage 以便當日重用
+        // localStorage.removeItem('dailyQuoteText'); // 如果確定不再需要，可以考慮移除
+        // localStorage.removeItem('lastQuoteDate');  // 如果確定不再需要，可以考慮移除
+
         quoteContainer.style.display = 'block';
         aquariumContainer.style.display = 'none'; // 初始隱藏魚缸
     }

@@ -221,18 +221,32 @@ class Fish {
      */
     updateElementStyle() {
         if (!this.element) return;
-        // 根據角度決定是否翻轉圖片 (假設原始圖片朝右)
-        // PI/2 (90度) 到 3*PI/2 (270度) 之間是朝左
-        const isFacingLeft = this.angle > Math.PI / 2 && this.angle < 3 * Math.PI / 2;
-        // 結合階段內縮放 currentVisualScale
-        const scaleX = isFacingLeft ? -this.currentVisualScale : this.currentVisualScale;
-        const effectiveAngle = isFacingLeft ? this.angle - Math.PI : this.angle; // 翻轉後角度也要調整
+
+        // 判斷魚的運動方向是否朝左
+        // this.angle = 0 是朝右, PI 是朝左
+        const isMovingLeft = this.angle > Math.PI / 2 && this.angle < 3 * Math.PI / 2;
+
+        let scaleXToApply;
+        let rotationToApply;
+
+        // 假設原始圖片素材是朝左的
+        if (isMovingLeft) {
+            // 如果魚正在向左移動，原始圖片是朝左的，則不需要翻轉
+            scaleXToApply = this.currentVisualScale;
+            // 左向的圖片 (其自然角度可視為 PI)，要使其指向 this.angle，需要旋轉 (this.angle - PI)
+            rotationToApply = this.angle - Math.PI;
+        } else {
+            // 如果魚正在向右移動，原始圖片是朝左的，則需要水平翻轉
+            scaleXToApply = -this.currentVisualScale;
+            // 翻轉後，圖片可視為朝右 (其自然角度可視為 0)，要使其指向 this.angle，需要旋轉 this.angle
+            rotationToApply = this.angle;
+        }
 
         // 定位點調整為圖片中心
         const translateX = this.x - (this.frameWidth * this.currentVisualScale / 2);
         const translateY = this.y - (this.frameHeight * this.currentVisualScale / 2);
 
-        this.element.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${effectiveAngle}rad) scaleX(${scaleX}) scaleY(${this.currentVisualScale})`;
+        this.element.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${rotationToApply}rad) scaleX(${scaleXToApply}) scaleY(${this.currentVisualScale})`;
         // 如果是 DIV 雪碧圖，才需要設定 backgroundPosition
         if (this.element.tagName === 'DIV') { // 確保只對 DIV 元素設定背景位置
             this.element.style.backgroundPosition = `-${this.currentFrame * this.frameWidth}px 0px`;
