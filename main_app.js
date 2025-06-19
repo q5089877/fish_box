@@ -117,7 +117,18 @@ const buddhistQuotes = [
     const MAX_FISHES = Math.floor(Math.random() * (8 - 4 + 1)) + 3; // 4 到 8 隻魚
 
     // Available food emojis based on your request
-    const availableFoodEmojis = ['🍚', '🌾', '🌽', '🍞'];
+    const availableFoodEmojis = [
+        '🍚', '🌾', '🍞', // Original foods
+        // Vegetables & Fruits
+        '🥕', '🍅', '🥦', '🥬', '🍆',
+        '🍎', '🍌', '🍇', '🍉', '🍓',
+        // Meat, Eggs & Protein
+        '🥚', '🍖', '🍗', '🥩', '🥓',
+        '🌰', '🥜',
+        // Sweets & Snacks
+        '🍪', '🍩', '🧁', '🎂', '🍫',
+        '🍭', '🍬'
+    ];
 
     // 可用的魚 Emoji 列表
     const availableFishEmojis = ['🐟', '🐠', '🐡', '🐳', '🐋', '🐙', '🦑', '🦐', '🦀'];
@@ -185,7 +196,7 @@ const buddhistQuotes = [
                 placementAttempts++;
 
                 // 1. 決定海草大小 (較小尺寸)
-                const visualFontSize = 12 + Math.random() * 8; // 海草字體大小 12px 到 20px
+                const visualFontSize = 20 + Math.random() * 8; // 海草字體大小 12px 到 20px
 
                 // 2. 估算碰撞檢測的尺寸 (假設海草字符大致為正方形)
                 const collisionWidth = visualFontSize;
@@ -194,7 +205,7 @@ const buddhistQuotes = [
                 // 3. 決定位置 (確保在魚缸底部且不超出邊界)
                 const randomX = Math.random() * (aquariumWidth - collisionWidth);
                 // 將海草的底部邊緣放置在距離魚缸底部 0 到 10px 的範圍內
-                const randomBottom = Math.random() * 10;
+                const randomBottom = Math.random() * 500;
 
                 // 計算用於碰撞檢測的 top 座標
                 const top = aquariumHeight - randomBottom - collisionHeight;
