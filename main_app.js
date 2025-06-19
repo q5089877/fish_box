@@ -113,37 +113,12 @@ const buddhistQuotes = [
 
     let dailyQuoteDisplayed = false;
     let fishes = [];
+    let foods = []; // Array to store food particles
     const MAX_FISHES = Math.floor(Math.random() * (10 - 4 + 1)) + 4; // 4 到 8 隻魚
 
     // 可用的魚 Emoji 列表
     const availableFishEmojis = ['🐟', '🐠', '🐡', '🦈', '🐳', '🐋', '🐙', '🦑', '🦐', '🦀'];
-
-    // 魚的成長階段配置
-    // 注意：emoji 和 baseFontSize 將在創建每條魚時隨機設定
-    // 這裡只定義成長閾值和在該階段內的相對縮放比例
-    const fishGrowthStages = {
-        small: {
-            // emoji: '🐠', // 將被移除
-            // baseFontSize: 65, // 將被移除
-            threshold: 0.33,  // 成長到此百分比時，進入下一個階段 (例如 0.33 代表成長進度達到 33% 時結束此階段)
-            minScaleInStage: 0.7, // 剛進入此階段時的縮放比例 (相對於 baseFontSize)。例如 0.7 代表初始大小為 baseFontSize * 0.7。
-            maxScaleInStage: 1.2  // 在此階段內，魚最大可以長到的縮放比例 (相對於 baseFontSize)。例如 1.2 代表最大可達 baseFontSize * 1.2。
-        },
-        medium: {
-            // emoji: '🐠', // 將被移除
-            // baseFontSize: 26, // 將被移除
-            threshold: 0.66,  // 成長到此百分比時，進入下一個階段
-            minScaleInStage: 0.8, // 剛進入此階段時的縮放比例
-            maxScaleInStage: 1.1  // 在此階段內，魚最大可以長到的縮放比例
-        },
-        large: {
-            // emoji: '🐠', // 將被移除
-            // baseFontSize: 38, // 將被移除
-            threshold: 1.0,   // 這是最後階段，所以閾值設為 1.0
-            minScaleInStage: 0.9, // 剛進入此階段時的縮放比例
-            maxScaleInStage: 1.2  // 在此階段內，魚最大可以長到的縮放比例
-        }
-    };
+    // fishGrowthStages constant removed as growth functionality is removed.
 
     // 顯示每日語錄
     function displayDailyQuote() {
@@ -168,6 +143,20 @@ const buddhistQuotes = [
             dailyQuoteDisplayed = true;
             if (fishes.length === 0) { // 確保只創建一次魚
                 initAquarium();
+            }
+        }
+    });
+
+    // 餵食功能：點擊魚缸添加食物
+    aquariumContainer.addEventListener('click', (event) => {
+        if (aquariumContainer.style.display === 'block' && fishes.length > 0) { // 只有在魚缸可見且有魚時才添加食物
+            const rect = aquariumContainer.getBoundingClientRect();
+            const foodX = event.clientX - rect.left;
+            const foodY = event.clientY - rect.top;
+
+            if (foods.length < 20) { // 限制食物顆粒的最大數量
+                const foodItem = new Food(foodX, foodY, aquariumContainer); // Food class is now defined in fish_new_stages.js
+                foods.push(foodItem);
             }
         }
     });
@@ -215,11 +204,10 @@ const buddhistQuotes = [
             // 在創建魚之前添加裝飾，這樣魚通常會渲染在裝飾之上
             if (i === 0) addDecorations(); // 在創建第一條魚之前添加所有裝飾物
 
-            // 為每條魚隨機選擇 Emoji 和基礎字體大小
+            // 為每條魚隨機選擇 Emoji 和固定大小
             const randomEmoji = availableFishEmojis[Math.floor(Math.random() * availableFishEmojis.length)];
-            const randomBaseFontSize = 75 + Math.floor(Math.random() * (120 - 75 + 1)); // 65 到 100
-
-               const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, fishGrowthStages, randomEmoji, randomBaseFontSize);
+            const randomSize = 35 + Math.floor(Math.random() * (70 - 35 + 1)); // 魚的大小範圍 35px 到 70px
+            const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, randomSize);
 
             const fishElement = document.createElement('span'); // 改成創建 span 元素來顯示 Emoji
             fishElement.id = fishId;
@@ -241,10 +229,17 @@ const buddhistQuotes = [
         lastTime = timestamp;
 
         fishes.forEach(fish => {
-            fish.updateGrowth(90); // 假設90天長大
-            fish.update(deltaTime, fishes); // 傳入所有魚的列表以進行碰撞檢測
+            // fish.updateGrowth(90); // Growth functionality removed
+            fish.update(deltaTime, fishes, foods); // Pass all fishes and foods
         });
 
+        // 清理被吃掉的食物
+        for (let i = foods.length - 1; i >= 0; i--) {
+            if (foods[i].isEaten) {
+                foods[i].remove();
+                foods.splice(i, 1);
+            }
+        }
         requestAnimationFrame(gameLoop);
     }
 

@@ -1,5 +1,33 @@
+// Food class
+class Food {
+    constructor(x, y, aquariumContainer) {
+        this.x = x;
+        this.y = y;
+        this.size = 10; // Food particle size in pixels
+        this.element = document.createElement('div');
+        this.element.className = 'food-particle';
+        this.element.style.position = 'absolute';
+        this.element.style.width = `${this.size}px`;
+        this.element.style.height = `${this.size}px`;
+        this.element.style.backgroundColor = '#saddlebrown'; // A brownish color for food
+        this.element.style.borderRadius = '50%';
+        this.element.style.left = `${this.x - this.size / 2}px`;
+        this.element.style.top = `${this.y - this.size / 2}px`;
+        this.element.style.zIndex = '50'; // Ensure food is visible
+        aquariumContainer.appendChild(this.element);
+        this.isEaten = false;
+    }
+
+    remove() {
+        if (this.element && this.element.parentNode) {
+            this.element.parentNode.removeChild(this.element);
+        }
+        this.element = null; // Help with garbage collection
+    }
+}
+
 class Fish {
-    constructor(id, aquariumWidth, aquariumHeight, growthStagesConfig, fishEmoji, baseFishFontSize) {
+    constructor(id, aquariumWidth, aquariumHeight, fishEmoji, fishSize) {
         this.id = id; // 魚的唯一標識
         this.aquariumWidth = aquariumWidth; // 魚缸寬度
         this.aquariumHeight = aquariumHeight; // 魚缸高度
@@ -19,26 +47,22 @@ class Fish {
         this.isPaused = false;
         this.pauseEndTime = 0;
 
-        // 成長相關
-        this.spawnDate = Date.now();
-        this.currentGrowthPercentage = 0; // 0 to 1
-        this.currentStageKey = 'small'; // 初始階段
-        this.growthStages = growthStagesConfig; // { small: {...}, medium: {...}, large: {...} }
+        // 成長相關屬性已移除
 
         // Emoji 相關
         this.emoji = fishEmoji; // 從建構函式參數獲取
-        this.baseFontSize = baseFishFontSize; // 從建構函式參數獲取
+        this.size = fishSize; // 魚的固定大小 (取代 baseFontSize 和 growth)
 
-        // 尺寸相關 (基於實例的 baseFontSize)
-        this.frameWidth = this.baseFontSize; // Emoji 的近似寬度
-        this.frameHeight = this.baseFontSize; // Emoji 的近似高度
+        // 尺寸相關 (基於實例的 size)
+        this.frameWidth = this.size; // Emoji 的近似寬度
+        this.frameHeight = this.size; // Emoji 的近似高度
 
-        this.currentVisualScale = 1.0; // 用於在一個階段內進行微調縮放
         // DOM 元素 (在創建實例後，由外部賦值)
         this.element = null;
 
-        // 初始化時根據初始階段設定動畫屬性
-        this.setStage(this.currentStageKey);
+        // 餵食相關
+        this.isSeekingFood = false;
+        this.foodTarget = null;
     }
 
     /**
@@ -49,63 +73,57 @@ class Fish {
         this.element = element;
         if (this.element) {
             this.element.style.position = 'absolute'; // 確保可以定位
-            this.applyCurrentStageToElement(); // 應用當前階段的樣式
+            this.element.textContent = this.emoji;
+            this.element.style.fontSize = `${this.size}px`;
             this.updateElementStyle();
         }
     }
 
     /**
-     * 根據成長階段 key 設定魚的動畫相關屬性
-     * @param {string} stageKey - 'small', 'medium', or 'large'
-     */
-    setStage(stageKey) {
-        if (this.growthStages && this.growthStages[stageKey]) {
-            const stageConfig = this.growthStages[stageKey];
-            this.currentStageKey = stageKey;
-            // this.emoji 和 this.baseFontSize 已在建構函式中設定，
-            // 不再從 stageConfig 中讀取。
-
-            // 基於實例的 baseFontSize (已設定) 設定近似的 frameWidth 和 frameHeight
-            // 假設 Emoji 大致是方形的
-            this.frameWidth = this.baseFontSize;
-            this.frameHeight = this.baseFontSize;
-
-            if (this.element) {
-                this.applyCurrentStageToElement();
-            }
-        }
-    }
-
-    /**
-     * 將當前成長階段的基礎樣式應用到 DOM 元素
-     */
-    applyCurrentStageToElement() {
-        if (!this.element || !this.emoji) return; // 使用實例的 emoji
-        this.element.textContent = this.emoji;
-        // 初始字體大小使用實例的 baseFontSize，並由 currentVisualScale 調整
-        this.element.style.fontSize = `${this.baseFontSize * this.currentVisualScale}px`;
-    }
-
-
-    /**
      * 更新魚的狀態 (每幀調用)
      * @param {number} deltaTime - 自上一幀以來的時間差 (秒)，如果使用 requestAnimationFrame
      * @param {Fish[]} allFishes - 魚缸中所有魚的列表，用於碰撞檢測
+     * @param {Food[]} allFoods - 魚缸中所有食物的列表
      */
-    update(deltaTime = 1 / 60, allFishes = []) { // 假設默認 60 FPS
+    update(deltaTime = 1 / 60, allFishes = [], allFoods = []) { // 假設默認 60 FPS
         if (this.isPaused) {
             if (Date.now() > this.pauseEndTime) {
                 this.isPaused = false;
-                this.setNewTarget();
+                // 如果暫停結束且沒有食物目標，則設定新隨機目標
+                if (!this.isSeekingFood) {
+                    this.setNewTarget();
+                }
             }
             return; // 暫停時不進行移動
         }
 
-        // 1. 隨機暫停
-        if (Math.random() < 0.001) { // 非常小的機率觸發暫停
+        // 1. 隨機暫停 (僅在不尋找食物時)
+        if (!this.isSeekingFood && Math.random() < 0.001) {
             this.isPaused = true;
             this.pauseEndTime = Date.now() + (1000 + Math.random() * 2000); // 暫停 1-3 秒
             return;
+        }
+
+        // 1.5. 尋找食物邏輯
+        if (!this.isSeekingFood || !this.foodTarget || this.foodTarget.isEaten) {
+            this.foodTarget = this.findClosestFood(allFoods);
+            if (this.foodTarget) {
+                this.isSeekingFood = true;
+                this.targetX = this.foodTarget.x;
+                this.targetY = this.foodTarget.y;
+                this.isPaused = false; // 如果找到食物，則取消暫停
+            } else {
+                this.isSeekingFood = false;
+                // 如果剛失去食物目標或沒有目標，設定一個新隨機目標
+                if (this.targetX === (this.foodTarget ? this.foodTarget.x : null) || // 檢查是否目標還是舊食物
+                    Math.sqrt(Math.pow(this.targetX - this.x, 2) + Math.pow(this.targetY - this.y, 2)) < 20) {
+                    this.setNewTarget();
+                }
+            }
+        } else if (this.isSeekingFood && this.foodTarget) {
+            // 持續追蹤食物
+            this.targetX = this.foodTarget.x;
+            this.targetY = this.foodTarget.y;
         }
 
         // 2. 計算到目標點的距離和角度
@@ -141,22 +159,36 @@ class Fish {
         this.checkOutOfBoundsAndReturn(); // Use the new boundary handling
         // 6. 到達目標點後設定新目標
         if (distanceToTarget < 20) { // 接近目標點
-            this.setNewTarget();
-            this.speed = 0.8 + Math.random() * 1.4;
+            if (this.isSeekingFood && this.foodTarget && !this.foodTarget.isEaten) {
+                // 吃到食物
+                const distanceToFoodCenter = Math.sqrt(Math.pow(this.foodTarget.x - this.x, 2) + Math.pow(this.foodTarget.y - this.y, 2));
+                if (distanceToFoodCenter < (this.size / 3 + this.foodTarget.size / 2)) { // 調整碰撞檢測使其更精確
+                    this.foodTarget.isEaten = true;
+                    this.isSeekingFood = false;
+                    this.foodTarget = null;
+                    this.setNewTarget(); // 吃完後設定新目標
+                    this.speed = 0.8 + Math.random() * 1.4; // 吃完後可能改變速度
+                }
+            } else if (!this.isSeekingFood) {
+                // 到達隨機目標點
+                this.setNewTarget();
+                this.speed = 0.8 + Math.random() * 1.4;
+            }
         }
 
         // 7. 與其他魚的碰撞檢測與躲避
         if (allFishes) {
             for (const otherFish of allFishes) {
                 if (otherFish.id === this.id) continue; // 不與自己檢測
+                if (!otherFish.element) continue; // 如果對方魚還未完全初始化
 
                 const dxFish = otherFish.x - this.x;
                 const dyFish = otherFish.y - this.y;
                 const distanceFish = Math.sqrt(dxFish * dxFish + dyFish * dyFish);
 
                 // 使用 frameWidth (基於 baseFontSize) 和 currentVisualScale 估算半徑
-                const myRadius = (this.frameWidth * this.currentVisualScale) / 2;
-                const otherRadius = (otherFish.frameWidth * otherFish.currentVisualScale) / 2;
+                const myRadius = this.frameWidth / 2; // 使用 fish.size
+                const otherRadius = otherFish.frameWidth / 2; // 使用 otherFish.size
 
                 if (distanceFish < myRadius + otherRadius) {
                     // 碰撞檢測到！設置新的目標以躲避
@@ -184,6 +216,31 @@ class Fish {
     }
 
     /**
+     * 尋找最近的未被吃掉的食物
+     * @param {Food[]} allFoods - 所有食物的列表
+     * @returns {Food|null} 最近的食物對象，如果沒有則返回 null
+     */
+    findClosestFood(allFoods) {
+        let closestFood = null;
+        let minDistance = Infinity;
+        const detectionRadius = this.size * 7; // 魚的偵測食物範圍，例如自身大小的5倍
+
+        for (const food of allFoods) {
+            if (food.isEaten) continue;
+
+            const dx = food.x - this.x;
+            const dy = food.y - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < minDistance && distance < detectionRadius) {
+                minDistance = distance;
+                closestFood = food;
+            }
+        }
+        return closestFood;
+    }
+
+    /**
      * 檢查魚是否游出邊界太遠，如果是，則設定一個返回魚缸內的目標。
      * 魚的位置 (this.x, this.y) 是其中心點。
      * 這個方法應該替換掉舊的 handleBoundaryCollision 方法。
@@ -196,7 +253,7 @@ class Fish {
      * 魚的位置 (this.x, this.y) 是其中心點。
      */
     checkOutOfBoundsAndReturn() {
-        const offScreenBuffer = this.frameWidth * this.currentVisualScale * 1.5; // 允許魚游出自身寬度1.5倍的距離
+        const offScreenBuffer = this.frameWidth * 1.5; // 允許魚游出自身寬度1.5倍的距離
         const returnTargetMargin = 50; // 返回目標點距離邊界的最小距離
 
         let needsNewTarget = false;
@@ -256,71 +313,28 @@ class Fish {
         const isMovingLeft = this.angle > Math.PI / 2 && this.angle < 3 * Math.PI / 2;
 
         let scaleXToApply;
-        let rotationToApply;
+        let effectiveRotation = this.angle;
 
         // 假設 Emoji (如 🐠) 默認朝左。如果移動向右，則翻轉。
         if (isMovingLeft) {
             // 移動向左，Emoji 朝左，不翻轉
-            scaleXToApply = this.currentVisualScale;
-            rotationToApply = this.angle - Math.PI;
+            scaleXToApply = 1;
+            effectiveRotation = this.angle - Math.PI; // Adjust rotation for left-facing emoji
         } else {
             // 移動向右，Emoji 朝左，需要翻轉
-            scaleXToApply = -this.currentVisualScale;
-            rotationToApply = this.angle;
+            scaleXToApply = -1; // Flip horizontally
+            // effectiveRotation remains this.angle
         }
 
-        // 使用 frameWidth/Height (基於 baseFontSize) 和 currentVisualScale 進行居中
+        // 使用 frameWidth/Height (基於 this.size) 進行居中
         // Emoji 的視覺中心可能需要微調，但這是一個好的開始
-        const currentDisplayWidth = this.frameWidth * this.currentVisualScale;
-        const currentDisplayHeight = this.frameHeight * this.currentVisualScale;
+        const currentDisplayWidth = this.frameWidth;
+        const currentDisplayHeight = this.frameHeight;
 
         const translateX = this.x - (currentDisplayWidth / 2);
         const translateY = this.y - (currentDisplayHeight / 2);
 
-        this.element.style.fontSize = `${this.baseFontSize * this.currentVisualScale}px`;
-
-        this.element.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${rotationToApply}rad) scaleX(${scaleXToApply}) scaleY(${this.currentVisualScale})`;
-    }
-
-    /**
-     * @param {number} totalGrowthPeriodDays - 總成長所需天數 (例如 90)
-     */
-    updateGrowth(totalGrowthPeriodDays = 90) {
-        const ageInMillis = Date.now() - this.spawnDate;
-        const ageInDays = ageInMillis / (1000 * 60 * 60 * 24);
-        this.currentGrowthPercentage = Math.min(1, ageInDays / totalGrowthPeriodDays);
-
-        let newStageKey = 'small';
-        let stageProgress = 0; // 當前階段內的成長進度 (0-1)
-
-        if (this.currentGrowthPercentage < this.growthStages.small.threshold) { // 例如 0.33
-            newStageKey = 'small';
-            stageProgress = this.currentGrowthPercentage / this.growthStages.small.threshold;
-        } else if (this.currentGrowthPercentage < this.growthStages.medium.threshold) { // 例如 0.66
-            newStageKey = 'medium';
-            stageProgress = (this.currentGrowthPercentage - this.growthStages.small.threshold) /
-                            (this.growthStages.medium.threshold - this.growthStages.small.threshold);
-        } else {
-            newStageKey = 'large';
-            stageProgress = (this.currentGrowthPercentage - this.growthStages.medium.threshold) /
-                            (1 - this.growthStages.medium.threshold);
-        }
-
-        if (this.currentStageKey !== newStageKey) {
-            this.setStage(newStageKey);
-        }
-
-        // 計算當前階段內的微調縮放 (例如，從該階段基礎大小的 0.7 倍長到 1.2 倍)
-        // 假設每個 stageConfig 有 minScale 和 maxScale
-        const stageConf = this.growthStages[this.currentStageKey];
-        const minScaleInStage = stageConf.minScaleInStage || 0.7;
-        const maxScaleInStage = stageConf.maxScaleInStage || 1.2;
-        this.currentVisualScale = minScaleInStage + stageProgress * (maxScaleInStage - minScaleInStage);
-        this.currentVisualScale = Math.max(minScaleInStage, Math.min(maxScaleInStage, this.currentVisualScale));
-
-
-        if (this.element) {
-            this.updateElementStyle(); // 確保縮放被應用
-        }
+        this.element.style.fontSize = `${this.size}px`; // Ensure font size is based on this.size
+        this.element.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${effectiveRotation}rad) scaleX(${scaleXToApply}) scaleY(1)`;
     }
 }
