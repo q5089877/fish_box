@@ -114,13 +114,13 @@ const buddhistQuotes = [
     let dailyQuoteDisplayed = false;
     let fishes = [];
     let foods = []; // Array to store food particles
-    const MAX_FISHES = Math.floor(Math.random() * (8 - 4 + 1)) + 5; // 4 到 8 隻魚
+    const MAX_FISHES = Math.floor(Math.random() * (8 - 4 + 1)) + 3; // 4 到 8 隻魚
 
     // Available food emojis based on your request
     const availableFoodEmojis = ['🍚', '🌾', '🌽', '🍞'];
 
     // 可用的魚 Emoji 列表
-    const availableFishEmojis = ['🐟', '🐠', '🐡', '🦈', '🐳', '🐋', '🐙', '🦑', '🦐', '🦀'];
+    const availableFishEmojis = ['🐟', '🐠', '🐡', '🐳', '🐋', '🐙', '🦑', '🦐', '🦀'];
     // fishGrowthStages constant removed as growth functionality is removed.
 
     // 顯示每日語錄
@@ -170,33 +170,70 @@ const buddhistQuotes = [
     function addDecorations() {
         const aquariumWidth = aquariumContainer.clientWidth;
         const aquariumHeight = aquariumContainer.clientHeight;
-        const decorations = ['🌿']; // 只使用海草
-        const numDecorations = 15;   // 改為 30 個海草
+        const decorationEmoji = '🌿';
+        const numDecorationsToAttempt = 15; // 嘗試放置的海草數量
+        const placedDecorationBounds = []; // 存儲已放置海草的邊界信息
+        const MAX_PLACEMENT_ATTEMPTS_PER_DECO = 20; // 每次放置嘗試的最大次數
 
-        for (let i = 0; i < numDecorations; i++) {
-            const decoElement = document.createElement('span');
-            decoElement.className = 'emoji-decoration';
-            const chosenEmoji = decorations[Math.floor(Math.random() * decorations.length)];
-            decoElement.textContent = chosenEmoji;
+        for (let i = 0; i < numDecorationsToAttempt; i++) {
+            let currentDecoInfo;
+            let isOverlapping;
+            let placementAttempts = 0;
 
-            // 基本樣式
-            decoElement.style.position = 'absolute';
-            let baseSize = 20 + Math.random() * 25; // Emoji 基礎大小 20px 到 45px
+            do {
+                isOverlapping = false;
+                placementAttempts++;
 
-            if (chosenEmoji === '🌿') { // 讓海草高一些
-                baseSize *= 1.5;
+                // 1. 決定海草大小 (較小尺寸)
+                const visualFontSize = 12 + Math.random() * 8; // 海草字體大小 12px 到 20px
+
+                // 2. 估算碰撞檢測的尺寸 (假設海草字符大致為正方形)
+                const collisionWidth = visualFontSize;
+                const collisionHeight = visualFontSize;
+
+                // 3. 決定位置 (確保在魚缸底部且不超出邊界)
+                const randomX = Math.random() * (aquariumWidth - collisionWidth);
+                // 將海草的底部邊緣放置在距離魚缸底部 0 到 10px 的範圍內
+                const randomBottom = Math.random() * 10;
+
+                // 計算用於碰撞檢測的 top 座標
+                const top = aquariumHeight - randomBottom - collisionHeight;
+
+                currentDecoInfo = {
+                    left: randomX,
+                    top: top, // 用於碰撞檢測
+                    width: collisionWidth,
+                    height: collisionHeight,
+                    cssBottom: randomBottom, // 用於 CSS 定位
+                    fontSize: visualFontSize
+                };
+
+                // 4. 檢查是否與已放置的海草重疊
+                for (const placedRect of placedDecorationBounds) {
+                    if (currentDecoInfo.left < placedRect.left + placedRect.width &&
+                        currentDecoInfo.left + currentDecoInfo.width > placedRect.left &&
+                        currentDecoInfo.top < placedRect.top + placedRect.height &&
+                        currentDecoInfo.top + currentDecoInfo.height > placedRect.top) {
+                        isOverlapping = true;
+                        break;
+                    }
+                }
+            } while (isOverlapping && placementAttempts < MAX_PLACEMENT_ATTEMPTS_PER_DECO);
+
+            // 5. 如果不重疊 (或達到最大嘗試次數後決定放棄)，則添加海草
+            if (!isOverlapping) {
+                const decoElement = document.createElement('span');
+                decoElement.className = 'emoji-decoration';
+                decoElement.textContent = decorationEmoji;
+                decoElement.style.position = 'absolute';
+                decoElement.style.fontSize = `${currentDecoInfo.fontSize}px`;
+                decoElement.style.left = `${currentDecoInfo.left}px`;
+                decoElement.style.bottom = `${currentDecoInfo.cssBottom}px`;
+                decoElement.style.userSelect = 'none'; // 防止選取
+
+                aquariumContainer.appendChild(decoElement);
+                placedDecorationBounds.push(currentDecoInfo); // 記錄已放置的海草邊界
             }
-            decoElement.style.fontSize = `${baseSize}px`;
-
-            // 定位在魚缸底部區域
-            const randomX = Math.random() * (aquariumWidth - baseSize); // 減去大小以避免超出邊界
-            const maxBottomOffset = aquariumHeight * 0.9; // 放置在底部 25% 的區域
-            const randomBottom = Math.random() * maxBottomOffset;
-
-            decoElement.style.left = `${randomX}px`;
-            decoElement.style.bottom = `${randomBottom}px`;
-
-            aquariumContainer.appendChild(decoElement);
         }
     }
 
