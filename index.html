@@ -3,15 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的迷你水族館</title>
-    <link rel="stylesheet" href="style.css">
+    <title>靜心禪語・水中樂</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* 避免滾動條 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0; /* 頁面背景色 */
+        }
+
+        #quote-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            z-index: 10;
+            cursor: pointer; /* 提示可以點擊 */
+        }
+
+        #aquarium-container {
+            width: 90vw; /* 魚缸寬度 */
+            height: 80vh; /* 魚缸高度 */
+            max-width: 800px; /* 最大寬度 */
+            max-height: 600px; /* 最大高度 */
+            background-color: #0B0B0B; /* 淡藍色背景，模擬水 */
+            border: 3px solid #4682B4; /* 邊框 */
+            position: relative; /* 為了魚的絕對定位 */
+            overflow: hidden; /* 魚兒不會游出去 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }
+
+        .fish {
+            /* 雪碧圖的背景圖片會在 JS 中設定 */
+            /* 寬高會直接在 img 元素上設定，或通過 JS 設定 */
+            position: absolute; /* 魚在魚缸內絕對定位 */
+            /* 為了讓 transform: scale() 從中心縮放 */
+            background-repeat: no-repeat; /* 雪碧圖需要 no-repeat */
+            transform-origin: center center;
+            /* 預設魚的圖片是朝右的 */
+        }
+
+        /* 可以添加海草、石頭等裝飾的樣式 */
+        .seaweed {
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            width: 50px; /* 範例尺寸 */
+            height: 100px; /* 範例尺寸 */
+            background-image: url('images/seaweed.png'); /* 假設您有海草圖片 */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: bottom center;
+        }
+        .rock {
+            position: absolute;
+            bottom: 5px;
+            right: 15%;
+            width: 80px; /* 範例尺寸 */
+            height: 60px; /* 範例尺寸 */
+            background-image: url('images/rock.png'); /* 假設您有石頭圖片 */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: bottom center;
+        }
+    </style>
 </head>
 <body>
-    <div id="aquarium">
-        <div class="fish" id="fish1"></div>
-        <div class="fish" id="fish2"></div>
+
+    <div id="quote-container">
+        <p id="quote-text">每日佛經語錄加載中...</p>
     </div>
 
-    <script src="script.js"></script>
+    <div id="aquarium-container">
+        <!-- 魚會被動態添加到這裡 -->
+        <!-- <div class="seaweed"></div> -->
+        <!-- <div class="rock"></div> -->
+    </div>
+
+    <!-- 引入 Fish 類別 -->
+    <script src="fish_new_stages.js"></script>
+    <!-- 引入您的主要應用程式邏輯 -->
+    <script src="main_app.js"></script>
+
 </body>
 </html>
