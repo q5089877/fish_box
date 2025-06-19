@@ -21,7 +21,7 @@
             left: 50%;
             transform: translateX(-50%);
             padding: 15px;
-            background-color: rgba(255, 255, 255, 0.8);
+            background-color: rgba(169, 180, 246, 0.8);
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             text-align: center;
@@ -41,7 +41,7 @@
             height: 80vh; /* 魚缸高度 */
             max-width: 800px; /* 最大寬度 */
             max-height: 600px; /* 最大高度 */
-            background-color: #0B0B0B; /* 淡藍色背景，模擬水 */
+            background-color: #f3ffb1; /* 淡藍色背景，模擬水 */
             border: 3px solid #4682B4; /* 邊框 */
             position: relative; /* 為了魚的絕對定位 */
             overflow: hidden; /* 魚兒不會游出去 */
@@ -56,13 +56,20 @@
         }
 
         .fish {
-            /* 雪碧圖的背景圖片會在 JS 中設定 */
-            /* 寬高會直接在 img 元素上設定，或通過 JS 設定 */
             position: absolute; /* 魚在魚缸內絕對定位 */
-            /* 為了讓 transform: scale() 從中心縮放 */
-            background-repeat: no-repeat; /* 雪碧圖需要 no-repeat */
-            transform-origin: center center;
-            /* 預設魚的圖片是朝右的 */
+            transform-origin: center center; /* 確保旋轉和縮放以中心點進行 */
+            /* Emoji 特定樣式 */
+            display: inline-block; /* 使 transform 生效，且能讓文字內容影響大小 */
+            text-align: center;    /* 如果元素有明確寬度，可使 emoji 居中 */
+            line-height: 1;        /* 避免額外的行高影響垂直居中感 */
+            user-select: none;     /* 防止用戶選取魚 Emoji */
+            cursor: default;       /* 避免顯示文字輸入游標 */
+        }
+
+        .emoji-decoration {
+            position: absolute; /* 確保 JS 設定的 left/bottom 生效 */
+            user-select: none; /* 防止用戶選取 Emoji 文字 */
+            /* z-index: 1; /* 通常不需要，因為它們在魚之前被添加到DOM */
         }
 
         /* 可以添加海草、石頭等裝飾的樣式 */

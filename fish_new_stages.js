@@ -1,5 +1,5 @@
 class Fish {
-    constructor(id, aquariumWidth, aquariumHeight, growthStagesConfig) {
+    constructor(id, aquariumWidth, aquariumHeight, growthStagesConfig, fishEmoji, baseFishFontSize) {
         this.id = id; // 魚的唯一標識
         this.aquariumWidth = aquariumWidth; // 魚缸寬度
         this.aquariumHeight = aquariumHeight; // 魚缸高度
@@ -25,16 +25,15 @@ class Fish {
         this.currentStageKey = 'small'; // 初始階段
         this.growthStages = growthStagesConfig; // { small: {...}, medium: {...}, large: {...} }
 
-        // 動畫相關 (將從 growthStages 中獲取)
-        this.spriteSheetSrc = '';
-        this.currentFrame = 0; // 雪碧圖當前幀
-        this.frameCount = 4; // 雪碧圖總幀數 (會從配置讀取)
-        this.frameHeight = 30; // 雪碧圖單幀高度 (從 setStage 移到此處以確保初始化)
-        this.frameWidth = 50; // 雪碧圖單幀寬度
-        this.animationSpeed = 0.2; // 雪碧圖動畫速度 (會從配置讀取)
-        this.animationCounter = 0; // 用於控制動畫幀更新的計數器
-        this.currentVisualScale = 1.0; // 用於在一個階段內進行微調縮放
+        // Emoji 相關
+        this.emoji = fishEmoji; // 從建構函式參數獲取
+        this.baseFontSize = baseFishFontSize; // 從建構函式參數獲取
 
+        // 尺寸相關 (基於實例的 baseFontSize)
+        this.frameWidth = this.baseFontSize; // Emoji 的近似寬度
+        this.frameHeight = this.baseFontSize; // Emoji 的近似高度
+
+        this.currentVisualScale = 1.0; // 用於在一個階段內進行微調縮放
         // DOM 元素 (在創建實例後，由外部賦值)
         this.element = null;
 
@@ -63,13 +62,13 @@ class Fish {
         if (this.growthStages && this.growthStages[stageKey]) {
             const stageConfig = this.growthStages[stageKey];
             this.currentStageKey = stageKey;
-            this.spriteSheetSrc = stageConfig.src;
-            this.frameCount = stageConfig.frames;
-            this.frameWidth = stageConfig.frameWidth;
-            this.frameHeight = stageConfig.frameHeight;
-            this.animationSpeed = stageConfig.animationSpeed || 0.2;
-            this.currentFrame = 0; // 切換階段時重置動畫幀
-            this.animationCounter = 0; // 切換階段時重置計數器
+            // this.emoji 和 this.baseFontSize 已在建構函式中設定，
+            // 不再從 stageConfig 中讀取。
+
+            // 基於實例的 baseFontSize (已設定) 設定近似的 frameWidth 和 frameHeight
+            // 假設 Emoji 大致是方形的
+            this.frameWidth = this.baseFontSize;
+            this.frameHeight = this.baseFontSize;
 
             if (this.element) {
                 this.applyCurrentStageToElement();
@@ -81,25 +80,19 @@ class Fish {
      * 將當前成長階段的基礎樣式應用到 DOM 元素
      */
     applyCurrentStageToElement() {
-        if (!this.element || !this.spriteSheetSrc) return;
-        // 假設統一使用 DIV 元素來顯示雪碧圖
-        if (this.element.tagName === 'DIV') {
-            this.element.style.backgroundImage = `url('${this.spriteSheetSrc}')`;
-            this.element.style.width = `${this.frameWidth}px`;
-            this.element.style.height = `${this.frameHeight}px`;
-        } else if (this.element.tagName === 'IMG') { // 如果仍然需要兼容 IMG (例如用於 GIF)
-            this.element.src = this.spriteSheetSrc; // 但雪碧圖動畫無法這樣工作
-            this.element.style.width = `${this.frameWidth}px`; // For GIFs, frameWidth is the image width
-            this.element.style.height = `${this.frameHeight}px`; // For GIFs, frameHeight is the image height
-        }
+        if (!this.element || !this.emoji) return; // 使用實例的 emoji
+        this.element.textContent = this.emoji;
+        // 初始字體大小使用實例的 baseFontSize，並由 currentVisualScale 調整
+        this.element.style.fontSize = `${this.baseFontSize * this.currentVisualScale}px`;
     }
 
 
     /**
      * 更新魚的狀態 (每幀調用)
      * @param {number} deltaTime - 自上一幀以來的時間差 (秒)，如果使用 requestAnimationFrame
+     * @param {Fish[]} allFishes - 魚缸中所有魚的列表，用於碰撞檢測
      */
-    update(deltaTime = 1 / 60) { // 假設默認 60 FPS
+    update(deltaTime = 1 / 60, allFishes = []) { // 假設默認 60 FPS
         if (this.isPaused) {
             if (Date.now() > this.pauseEndTime) {
                 this.isPaused = false;
@@ -144,55 +137,103 @@ class Fish {
         this.y += Math.sin(this.angle) * currentSpeed;
 
         // 5. 邊界檢測與處理 (簡單反彈或設定新目標)
-        this.handleBoundaryCollision();
-
+        // this.handleBoundaryCollision(); // Old boundary handling
+        this.checkOutOfBoundsAndReturn(); // Use the new boundary handling
         // 6. 到達目標點後設定新目標
         if (distanceToTarget < 20) { // 接近目標點
             this.setNewTarget();
             this.speed = 0.8 + Math.random() * 1.4;
         }
 
-        // 7. 更新雪碧圖動畫幀
-        this.updateAnimationFrame(deltaTime);
+        // 7. 與其他魚的碰撞檢測與躲避
+        if (allFishes) {
+            for (const otherFish of allFishes) {
+                if (otherFish.id === this.id) continue; // 不與自己檢測
 
-        // 8. 更新 DOM 元素樣式
+                const dxFish = otherFish.x - this.x;
+                const dyFish = otherFish.y - this.y;
+                const distanceFish = Math.sqrt(dxFish * dxFish + dyFish * dyFish);
+
+                // 使用 frameWidth (基於 baseFontSize) 和 currentVisualScale 估算半徑
+                const myRadius = (this.frameWidth * this.currentVisualScale) / 2;
+                const otherRadius = (otherFish.frameWidth * otherFish.currentVisualScale) / 2;
+
+                if (distanceFish < myRadius + otherRadius) {
+                    // 碰撞檢測到！設置新的目標以躲避
+                    const repulsionAngle = Math.atan2(this.y - otherFish.y, this.x - otherFish.x); // 從 otherFish 指向 thisFish 的角度
+                    const repulsionDistance = 30 + Math.random() * 40; // 躲避目標的距離
+
+                    this.targetX = this.x + Math.cos(repulsionAngle) * repulsionDistance;
+                    this.targetY = this.y + Math.sin(repulsionAngle) * repulsionDistance;
+
+                    // 確保新目標在邊界內
+                    const boundaryMargin = 20; // 邊界緩衝
+                    this.targetX = Math.max(boundaryMargin, Math.min(this.aquariumWidth - boundaryMargin, this.targetX));
+                    this.targetY = Math.max(boundaryMargin, Math.min(this.aquariumHeight - boundaryMargin, this.targetY));
+
+                    // 可以選擇立即稍微改變角度或增加一點速度
+                    // this.angle = repulsionAngle; // 可能太突兀
+                    break; // 每幀只處理一次碰撞躲避
+                }
+            }
+        }
+        // 8. 更新 DOM 元素樣式 (移除了 updateAnimationFrame)
         if (this.element) {
             this.updateElementStyle();
         }
     }
 
     /**
-     * 處理魚碰到魚缸邊界的邏輯
+     * 檢查魚是否游出邊界太遠，如果是，則設定一個返回魚缸內的目標。
+     * 魚的位置 (this.x, this.y) 是其中心點。
+     * 這個方法應該替換掉舊的 handleBoundaryCollision 方法。
      */
-    handleBoundaryCollision() {
-        const margin = 10; // 邊界緩衝
-        // 使用當前階段的 frameWidth/Height 和 currentVisualScale 來計算實際碰撞邊界
-        const currentDisplayWidth = this.frameWidth * this.currentVisualScale;
-        const currentDisplayHeight = this.frameHeight * this.currentVisualScale;
+    // 移除舊的 handleBoundaryCollision 方法定義 (如果存在且不使用)
+    // 如果 handleBoundaryCollision 還有其他用途，則保留並在 update 中選擇呼叫哪個
 
+    /**
+     * 檢查魚是否游出邊界太遠，如果是，則設定一個返回魚缸內的目標。
+     * 魚的位置 (this.x, this.y) 是其中心點。
+     */
+    checkOutOfBoundsAndReturn() {
+        const offScreenBuffer = this.frameWidth * this.currentVisualScale * 1.5; // 允許魚游出自身寬度1.5倍的距離
+        const returnTargetMargin = 50; // 返回目標點距離邊界的最小距離
 
-        if (this.x < margin) {
-            this.x = margin;
-            this.targetX = this.aquariumWidth - margin - Math.random() * (this.aquariumWidth / 3); // 游向另一邊
-            this.targetY = Math.random() * this.aquariumHeight;
-        } else if (this.x > this.aquariumWidth - margin - currentDisplayWidth) {
-            this.x = this.aquariumWidth - margin - currentDisplayWidth;
-            this.targetX = margin + Math.random() * (this.aquariumWidth / 3);
-            this.targetY = Math.random() * this.aquariumHeight;
+        let needsNewTarget = false;
+
+        // 檢查是否游出左邊界太遠
+        if (this.x < -offScreenBuffer) {
+            this.x = -offScreenBuffer; // 稍微拉回一點，避免無限遠離
+            this.targetX = returnTargetMargin + Math.random() * (this.aquariumWidth - 2 * returnTargetMargin);
+            this.targetY = returnTargetMargin + Math.random() * (this.aquariumHeight - 2 * returnTargetMargin);
+            needsNewTarget = true;
+        }
+        // 檢查是否游出右邊界太遠
+        else if (this.x > this.aquariumWidth + offScreenBuffer) {
+            this.x = this.aquariumWidth + offScreenBuffer;
+            this.targetX = returnTargetMargin + Math.random() * (this.aquariumWidth - 2 * returnTargetMargin);
+            this.targetY = returnTargetMargin + Math.random() * (this.aquariumHeight - 2 * returnTargetMargin);
+            needsNewTarget = true;
+        }
+        // 檢查是否游出上邊界太遠
+        if (this.y < -offScreenBuffer) {
+            this.y = -offScreenBuffer;
+            this.targetY = returnTargetMargin + Math.random() * (this.aquariumHeight - 2 * returnTargetMargin);
+            this.targetX = returnTargetMargin + Math.random() * (this.aquariumWidth - 2 * returnTargetMargin);
+            needsNewTarget = true;
+        }
+        // 檢查是否游出下邊界太遠
+        else if (this.y > this.aquariumHeight + offScreenBuffer) {
+            this.y = this.aquariumHeight + offScreenBuffer;
+            this.targetY = returnTargetMargin + Math.random() * (this.aquariumHeight - 2 * returnTargetMargin);
+            this.targetX = returnTargetMargin + Math.random() * (this.aquariumWidth - 2 * returnTargetMargin);
+            needsNewTarget = true;
         }
 
-        if (this.y < margin) {
-            this.y = margin;
-            this.targetY = this.aquariumHeight - margin - Math.random() * (this.aquariumHeight / 3);
-            this.targetX = Math.random() * this.aquariumWidth;
-        } else if (this.y > this.aquariumHeight - margin - currentDisplayHeight) {
-            this.y = this.aquariumHeight - margin - currentDisplayHeight;
-            this.targetY = margin + Math.random() * (this.aquariumHeight / 3);
-            this.targetX = Math.random() * this.aquariumWidth;
+        if (needsNewTarget) {
+            // 可以選擇稍微改變一下速度或轉向速度，讓回游更自然
+            this.speed = 1 + Math.random() * 1; // 重設一個隨機速度
         }
-
-        // 註解掉的 if (collided) 區塊以及其對應的結束大括號已被移除，以修正語法錯誤。
-        // 先前此處多餘的 '}' 導致了 "Unexpected token '{' " 錯誤。
     }
 
     /**
@@ -204,18 +245,6 @@ class Fish {
         this.targetX = margin + Math.random() * (this.aquariumWidth - 2 * margin);
         this.targetY = margin + Math.random() * (this.aquariumHeight - 2 * margin);
     }
-
-    /**
-     * 更新雪碧圖動畫幀
-     */
-    updateAnimationFrame(deltaTime) {
-        this.animationCounter += deltaTime * 60 * this.animationSpeed; // 乘以60是為了將deltaTime的秒單位轉為幀單位思考
-        if (this.animationCounter >= 1) {
-            this.currentFrame = (this.currentFrame + 1) % this.frameCount;
-            this.animationCounter = 0;
-        }
-    }
-
     /**
      * 更新魚的 DOM 元素的 CSS 樣式
      */
@@ -229,28 +258,28 @@ class Fish {
         let scaleXToApply;
         let rotationToApply;
 
-        // 假設原始圖片素材是朝左的
+        // 假設 Emoji (如 🐠) 默認朝左。如果移動向右，則翻轉。
         if (isMovingLeft) {
-            // 如果魚正在向左移動，原始圖片是朝左的，則不需要翻轉
+            // 移動向左，Emoji 朝左，不翻轉
             scaleXToApply = this.currentVisualScale;
-            // 左向的圖片 (其自然角度可視為 PI)，要使其指向 this.angle，需要旋轉 (this.angle - PI)
             rotationToApply = this.angle - Math.PI;
         } else {
-            // 如果魚正在向右移動，原始圖片是朝左的，則需要水平翻轉
+            // 移動向右，Emoji 朝左，需要翻轉
             scaleXToApply = -this.currentVisualScale;
-            // 翻轉後，圖片可視為朝右 (其自然角度可視為 0)，要使其指向 this.angle，需要旋轉 this.angle
             rotationToApply = this.angle;
         }
 
-        // 定位點調整為圖片中心
-        const translateX = this.x - (this.frameWidth * this.currentVisualScale / 2);
-        const translateY = this.y - (this.frameHeight * this.currentVisualScale / 2);
+        // 使用 frameWidth/Height (基於 baseFontSize) 和 currentVisualScale 進行居中
+        // Emoji 的視覺中心可能需要微調，但這是一個好的開始
+        const currentDisplayWidth = this.frameWidth * this.currentVisualScale;
+        const currentDisplayHeight = this.frameHeight * this.currentVisualScale;
+
+        const translateX = this.x - (currentDisplayWidth / 2);
+        const translateY = this.y - (currentDisplayHeight / 2);
+
+        this.element.style.fontSize = `${this.baseFontSize * this.currentVisualScale}px`;
 
         this.element.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${rotationToApply}rad) scaleX(${scaleXToApply}) scaleY(${this.currentVisualScale})`;
-        // 如果是 DIV 雪碧圖，才需要設定 backgroundPosition
-        if (this.element.tagName === 'DIV') { // 確保只對 DIV 元素設定背景位置
-            this.element.style.backgroundPosition = `-${this.currentFrame * this.frameWidth}px 0px`;
-        }
     }
 
     /**
