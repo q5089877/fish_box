@@ -111,6 +111,38 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
+        #controls-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100; /* 確保在魚缸和其他元素之上 */
+            background-color: rgba(220, 220, 220, 0.85); /* 淡灰色背景，半透明 */
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+        }
+
+        #max-fish-control span {
+            margin: 0 10px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        #max-fish-control button {
+            padding: 4px 8px; /* 調整按鈕大小 */
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #5cb85c; /* 綠色按鈕 */
+            color: white;
+            border: none;
+            border-radius: 3px;
+        }
+        #max-fish-control button:hover {
+            background-color: #4cae4c;
+        }
     </style>
 </head>
 <body>
@@ -118,9 +150,17 @@
     <div id="quote-container">
         <p id="quote-text">每日佛經語錄加載中...</p>
     </div>
-        <div id="refresh-button-container">
-            <button id="refresh-button">重新整理</button>
+
+    <div id="controls-container">
+        <div id="max-fish-control">
+            <button id="decrease-fish" title="減少魚隻">-</button>
+            <span>最大魚隻: <span id="max-fish-display">5</span></span>
+            <button id="increase-fish" title="增加魚隻">+</button>
         </div>
+    </div>
+    <div id="refresh-button-container">
+        <button id="refresh-button">重新整理</button>
+    </div>
     <div id="aquarium-container">
         <!-- 魚會被動態添加到這裡 -->
         <!-- <div class="seaweed"></div> -->

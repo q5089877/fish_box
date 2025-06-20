@@ -120,7 +120,9 @@ const buddhistQuotes = [
     const INITIAL_FISH_SIZE = 35;
     const SEAWEED_SIZE_AFTER_TRANSFORM = 22;
     const SEAWEED_EMOJI_AFTER_TRANSFORM = '🌿'; // 轉換後的水草 Emoji
-    const MAX_FISHES = Math.floor(Math.random() * (8 - 4 + 1)) + 3; // 4 到 8 隻魚
+    let MAX_FISHES = 5; // 預設最大魚隻數量，使用者可以更改
+    const MIN_FISHES_LIMIT = 1; // 最小魚隻數量限制
+    const MAX_FISHES_LIMIT = 20; // 最大魚隻數量限制 (可選)
 
     // Available food emojis based on your request
     const availableFoodEmojis = [
@@ -140,6 +142,11 @@ const buddhistQuotes = [
     const availableFishEmojis = ['🐟', '🐠', '🐡', '🐳', '🐋', '🐙', '🦑', '🦐', '🦀'];
     // fishGrowthStages constant removed as growth functionality is removed.
 
+    // DOM elements for max fish control
+    const decreaseFishButton = document.getElementById('decrease-fish');
+    const increaseFishButton = document.getElementById('increase-fish');
+    const maxFishDisplay = document.getElementById('max-fish-display');
+
     // 顯示每日語錄
     function displayDailyQuote() {
         // 每次都隨機選擇一句新的佛語
@@ -151,6 +158,7 @@ const buddhistQuotes = [
 
         quoteContainer.style.display = 'block';
         aquariumContainer.style.display = 'none'; // 初始隱藏魚缸
+        updateMaxFishDisplay(); // 初始化時更新顯示
     }
 
     // 重新整理按鈕的事件監聽器
@@ -309,6 +317,48 @@ const buddhistQuotes = [
         fishes.push(fishInstance); // 添加到全局魚列表
     }
 
+    // 更新顯示最大魚數量的 UI
+    function updateMaxFishDisplay() {
+        if (maxFishDisplay) {
+            maxFishDisplay.textContent = MAX_FISHES;
+        }
+    }
+
+    // 調整魚的數量以符合 MAX_FISHES 限制
+    function adjustFishPopulation() {
+        // 如果當前魚的數量超過了新的最大限制，則移除多餘的魚
+        while (fishes.length > MAX_FISHES) {
+            const fishToRemove = fishes.pop(); // 從陣列末尾移除魚
+            if (fishToRemove && fishToRemove.element && fishToRemove.element.parentNode) {
+                fishToRemove.element.parentNode.removeChild(fishToRemove.element);
+                // 魚的氣泡會自行消失，不需要特別處理
+            }
+        }
+        // 如果希望在增加 MAX_FISHES 時立即補充魚（即使沒有魚轉換），可以在這裡添加邏輯
+        // 但目前的設計是等待魚轉換時自然補充到新的上限
+    }
+
+    // 事件監聽器：減少最大魚隻數量
+    decreaseFishButton.addEventListener('click', () => {
+        if (MAX_FISHES > MIN_FISHES_LIMIT) {
+            MAX_FISHES--;
+            updateMaxFishDisplay();
+            adjustFishPopulation(); // 移除多餘的魚
+        }
+    });
+
+    // 事件監聽器：增加最大魚隻數量
+    increaseFishButton.addEventListener('click', () => {
+        if (MAX_FISHES < MAX_FISHES_LIMIT) { // 可選的上限檢查
+            MAX_FISHES++;
+            updateMaxFishDisplay();
+            // 當增加最大魚隻數量時，立即補充魚直到達到新的 MAX_FISHES
+            while (fishes.length < MAX_FISHES) {
+                spawnSingleFish();
+            }
+        }
+    });
+
     function initAquarium() {
         const aquariumWidth = aquariumContainer.clientWidth;
         const aquariumHeight = aquariumContainer.clientHeight;
@@ -366,7 +416,10 @@ const buddhistQuotes = [
         }
         // 生成因轉換而需要補充的新魚
         for (let k = 0; k < fishSpawnCount; k++) {
-            spawnSingleFish();
+            // 檢查是否低於（新的）最大魚隻限制
+            if (fishes.length < MAX_FISHES) {
+                spawnSingleFish();
+            }
         }
 
         // Update food particles (for sinking)
