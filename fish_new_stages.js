@@ -159,9 +159,9 @@ class Fish {
         this.baseSpeedMax = 50;
         this.turnSpeedMin = 1.5; // 轉向速度單位改為 弧度/秒
         this.turnSpeedMax = 3.0;
-        this.pauseChance = 0.002; // 每幀暫停的機率 (約每 8 秒一次，如果 60fps)
-        this.minPauseDuration = 1000; // ms
-        this.maxPauseDuration = 2000; // ms
+        this.pauseChance = 0.0002; // 每幀暫停的機率 (約每 8 秒一次，如果 60fps)
+        this.minPauseDuration = 800; // ms
+        this.maxPauseDuration = 1500; // ms
         this.foodDetectionMultiplier = 6; // 偵測食物範圍 = 魚大小 * 此倍數
 
         if (this.behaviorType === 'active') {
