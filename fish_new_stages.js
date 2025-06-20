@@ -119,7 +119,7 @@ class Fish {
         // 1. 隨機暫停 (僅在不尋找食物時)
         if (!this.isSeekingFood && Math.random() < 0.001) {
             this.isPaused = true;
-            this.pauseEndTime = Date.now() + (1000 + Math.random() * 2000); // 暫停 1-3 秒
+            this.pauseEndTime = Date.now() + (1000 + Math.random() * 1000); // 暫停 1-3 秒
             return;
         }
 
