@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const quoteContainer = document.getElementById('quote-container');
     const quoteTextElement = document.getElementById('quote-text');
     const aquariumContainer = document.getElementById('aquarium-container');
+    const refreshButton = document.getElementById('refresh-button'); // 獲取按鈕元素
 
     // 佛經語錄數據 (範例)
 // 佛經語錄數據（100 條擴充版）
@@ -114,6 +115,10 @@ const buddhistQuotes = [
     let dailyQuoteDisplayed = false;
     let fishes = [];
     let foods = []; // Array to store food particles
+    // 魚的相關常數
+    const INITIAL_FISH_SIZE = 35;
+    const SEAWEED_SIZE_AFTER_TRANSFORM = 22;
+    const SEAWEED_EMOJI_AFTER_TRANSFORM = '🌿'; // 轉換後的水草 Emoji
     const MAX_FISHES = Math.floor(Math.random() * (8 - 4 + 1)) + 3; // 4 到 8 隻魚
 
     // Available food emojis based on your request
@@ -149,6 +154,11 @@ const buddhistQuotes = [
         aquariumContainer.style.display = 'none'; // 初始隱藏魚缸
     }
 
+    // 重新整理按鈕的事件監聽器
+    refreshButton.addEventListener('click', () => {
+        location.reload(); // 重新載入頁面
+    });
+
     // 語錄點擊後切換到魚缸
     quoteContainer.addEventListener('click', () => {
         if (!dailyQuoteDisplayed) {
@@ -176,6 +186,31 @@ const buddhistQuotes = [
             }
         }
     });
+
+    // 添加單個水草裝飾 (用於魚轉換後)
+    function addSingleSeaweed(x, y, size) {
+        const decoElement = document.createElement('span');
+        decoElement.className = 'emoji-decoration'; // 使用現有的裝飾 class
+        decoElement.textContent = SEAWEED_EMOJI_AFTER_TRANSFORM;
+        decoElement.style.position = 'absolute';
+        decoElement.style.fontSize = `${size}px`;
+
+        // 將水草放置在魚缸底部，靠近魚轉換時的 x 座標
+        const aquariumWidth = aquariumContainer.clientWidth;
+        const decoWidth = size; // 水草的近似寬度
+
+        // 確保 x 座標在魚缸內
+        let finalX = Math.max(0, Math.min(x - decoWidth / 2, aquariumWidth - decoWidth));
+
+        decoElement.style.left = `${finalX}px`;
+        // 放置在底部，可以有一個小的隨機 y 偏移
+        decoElement.style.bottom = `${Math.random() * 10}px`; // 距離底部 0-10px
+        decoElement.style.userSelect = 'none'; // 防止選取
+        decoElement.style.zIndex = '1'; // 確保在魚的下方 (如果魚的 z-index 更高)
+
+        aquariumContainer.appendChild(decoElement);
+    }
+
 
     // (可選) 添加一些靜態裝飾 (使用 Emoji)
     function addDecorations() {
@@ -205,7 +240,7 @@ const buddhistQuotes = [
                 // 3. 決定位置 (確保在魚缸底部且不超出邊界)
                 const randomX = Math.random() * (aquariumWidth - collisionWidth);
                 // 將海草的底部邊緣放置在距離魚缸底部 0 到 10px 的範圍內
-                const randomBottom = Math.random() * 500;
+                const randomBottom = Math.random() * 30; // 調整：讓海草更靠近底部
 
                 // 計算用於碰撞檢測的 top 座標
                 const top = aquariumHeight - randomBottom - collisionHeight;
@@ -248,21 +283,39 @@ const buddhistQuotes = [
         }
     }
 
+    // 生成一條新的魚
+    function spawnSingleFish() {
+        const aquariumWidth = aquariumContainer.clientWidth;
+        const aquariumHeight = aquariumContainer.clientHeight;
+
+        const fishId = `fish-spawned-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        const randomEmoji = availableFishEmojis[Math.floor(Math.random() * availableFishEmojis.length)];
+        // 新魚使用初始大小
+        const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE);
+
+        const fishElement = document.createElement('span');
+        fishElement.id = fishId;
+        fishElement.className = 'fish';
+
+        fishInstance.setElement(fishElement);
+        aquariumContainer.appendChild(fishElement);
+        fishes.push(fishInstance); // 添加到全局魚列表
+    }
+
     function initAquarium() {
         const aquariumWidth = aquariumContainer.clientWidth;
         const aquariumHeight = aquariumContainer.clientHeight;
 
-        for (let i = 0; i < MAX_FISHES; i++) {
-            const fishId = `fish-${i}-${Date.now()}`;
-            // 在創建魚之前添加裝飾，這樣魚通常會渲染在裝飾之上
-            if (i === 0) addDecorations(); // 在創建第一條魚之前添加所有裝飾物
+        // 在創建第一條魚之前添加所有裝飾物
+        addDecorations();
 
+        for (let i = 0; i < MAX_FISHES; i++) {
+            const fishId = `fish-init-${i}-${Date.now()}`;
             // 為每條魚隨機選擇 Emoji 和固定大小
             const randomEmoji = availableFishEmojis[Math.floor(Math.random() * availableFishEmojis.length)];
-            const randomSize = 35 + Math.floor(Math.random() * (70 - 35 + 1)); // 魚的大小範圍 35px 到 70px
-            const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, randomSize);
-
-            const fishElement = document.createElement('span'); // 改成創建 span 元素來顯示 Emoji
+            // 魚的初始大小固定為 INITIAL_FISH_SIZE
+            const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE);
+            const fishElement = document.createElement('span');
             fishElement.id = fishId;
             fishElement.className = 'fish';
             // fishInstance.setElement 會處理初始的 emoji 和樣式
@@ -281,10 +334,33 @@ const buddhistQuotes = [
         const deltaTime = (timestamp - lastTime) / 1000 || 0; // 處理第一幀
         lastTime = timestamp;
 
-        fishes.forEach(fish => {
-            // fish.updateGrowth(90); // Growth functionality removed
+        let fishSpawnCount = 0; // 記錄本幀需要生成的魚的數量
+
+        // 從後向前遍歷，以便安全地從陣列中移除元素
+        for (let i = fishes.length - 1; i >= 0; i--) {
+            const fish = fishes[i];
             fish.update(deltaTime, fishes, foods); // Pass all fishes and foods
-        });
+
+            if (fish.isTransforming) {
+                // 1. 在魚的位置附近（底部）添加一個新的水草
+                addSingleSeaweed(fish.x, fish.y, SEAWEED_SIZE_AFTER_TRANSFORM);
+
+                // 2. 從 DOM 中移除魚的元素
+                if (fish.element && fish.element.parentNode) {
+                    fish.element.parentNode.removeChild(fish.element);
+                }
+
+                // 3. 從 fishes 陣列中移除該魚的實例
+                fishes.splice(i, 1);
+
+                // 4. 標記需要生成一條新魚
+                fishSpawnCount++;
+            }
+        }
+        // 生成因轉換而需要補充的新魚
+        for (let k = 0; k < fishSpawnCount; k++) {
+            spawnSingleFish();
+        }
 
         // Update food particles (for sinking)
         foods.forEach(food => {

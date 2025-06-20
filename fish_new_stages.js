@@ -82,6 +82,9 @@ class Fish {
         // 餵食相關
         this.isSeekingFood = false;
         this.foodTarget = null;
+
+        this.isTransforming = false; // 新增：標記魚是否準備轉換
+        this.MAX_SIZE = 100;         // 新增：魚的最大尺寸
     }
 
     /**
@@ -105,6 +108,8 @@ class Fish {
      * @param {Food[]} allFoods - 魚缸中所有食物的列表
      */
     update(deltaTime = 1 / 60, allFishes = [], allFoods = []) { // 假設默認 60 FPS
+        if (this.isTransforming) return; // 如果正在轉換，則不執行任何操作
+
         if (this.isPaused) {
             if (Date.now() > this.pauseEndTime) {
                 this.isPaused = false;
@@ -185,7 +190,21 @@ class Fish {
                     this.foodTarget.isEaten = true;
                     this.isSeekingFood = false;
                     this.foodTarget = null;
-                    this.setNewTarget(); // 吃完後設定新目標
+
+                    // 魚成長邏輯
+                    if (this.size < this.MAX_SIZE) {
+                        this.size += 3;
+                        this.frameWidth = this.size; // 更新碰撞檢測的尺寸
+                        this.frameHeight = this.size;
+                        // 立刻更新樣式以顯示成長後的大小
+                        if (this.element) this.updateElementStyle();
+                    }
+
+                    if (this.size >= this.MAX_SIZE) {
+                        this.isTransforming = true; // 達到最大尺寸，標記轉換
+                    } else {
+                        this.setNewTarget(); // 吃完後設定新隨機目標
+                    }
                     this.speed = 0.8 + Math.random() * 1.4; // 吃完後可能改變速度
                 }
             } else if (!this.isSeekingFood) {
@@ -229,7 +248,7 @@ class Fish {
             }
         }
         // 8. 更新 DOM 元素樣式 (移除了 updateAnimationFrame)
-        if (this.element) {
+        if (this.element && !this.isTransforming) { // 只有在不轉換時才更新樣式
             this.updateElementStyle();
         }
     }
