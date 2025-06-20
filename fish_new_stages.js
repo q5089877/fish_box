@@ -160,8 +160,8 @@ class Fish {
         this.turnSpeedMin = 1.5; // 轉向速度單位改為 弧度/秒
         this.turnSpeedMax = 3.0;
         this.pauseChance = 0.002; // 每幀暫停的機率 (約每 8 秒一次，如果 60fps)
-        this.minPauseDuration = 1500; // ms
-        this.maxPauseDuration = 3500; // ms
+        this.minPauseDuration = 1000; // ms
+        this.maxPauseDuration = 2000; // ms
         this.foodDetectionMultiplier = 6; // 偵測食物範圍 = 魚大小 * 此倍數
 
         if (this.behaviorType === 'active') {
@@ -179,8 +179,8 @@ class Fish {
             this.turnSpeedMin = 1.0;
             this.turnSpeedMax = 2.0;
             this.pauseChance = 0.003; // 調整：降低暫停頻率 (約每 5-6 秒一次 @60fps)
-            this.minPauseDuration = 2500;
-            this.maxPauseDuration = 5000;
+            this.minPauseDuration = 2000;
+            this.maxPauseDuration = 3000;
             this.foodDetectionMultiplier = 4;
             // 害羞的魚在設定新目標時，更傾向於魚缸的下半部分
         }
