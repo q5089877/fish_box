@@ -45,8 +45,66 @@ class Food {
     }
 }
 
+class Bubble {
+    constructor(x, y, aquariumContainer) {
+        this.x = x; // Initial x position (center of bubble)
+        this.y = y; // Initial y position (center of bubble)
+        // TEMPORARY: Make bubbles bigger and more visible for debugging
+        this.size = 10 + Math.random() * 5; // Bubble size: 10px to 15px diameter
+        this.element = document.createElement('div');
+        this.element.className = 'bubble'; // For potential CSS styling
+        this.element.style.position = 'absolute';
+        this.element.style.width = `${this.size}px`;
+        this.element.style.height = `${this.size}px`;
+        // TEMPORARY: Bright red color for debugging
+        this.element.style.backgroundColor = 'red';
+        // this.element.style.backgroundColor = 'rgba(200, 225, 255, 0.5)'; // Original: Light blue, semi-transparent
+        this.element.style.borderRadius = '50%';
+        this.element.style.zIndex = '5'; // Below fish (10), above transformed seaweed (1)
+        this.element.style.userSelect = 'none';
+        // Set initial position based on center
+        this.element.style.left = `${this.x - this.size / 2}px`;
+        this.element.style.top = `${this.y - this.size / 2}px`;
+        aquariumContainer.appendChild(this.element);
+        // console.log('Bubble created and appended:', this.element, 'at x:', this.x, 'y:', this.y); // Optional: for console debugging
+
+        this.riseSpeed = (15 + Math.random() * 25); // Pixels per second
+        this.swayFrequency = (0.3 + Math.random() * 0.4); // Sway cycles per second (e.g., 0.3 to 0.7 Hz)
+        this.swayAmplitude = Math.random() * 2 + 1;  // Sway distance in pixels
+        this.initialX = x; // Store initial X for sway calculation relative to it
+        this.lifeSpan = 2.5 + Math.random() * 3; // Bubble lifetime in seconds (2.5 to 5.5s)
+        this.age = 0;
+    }
+
+    update(deltaTime) {
+        this.age += deltaTime;
+        if (this.age > this.lifeSpan || this.y + this.size < 0) { // If lifetime exceeded or off-screen (top)
+            this.remove();
+            return false; // Indicate it should be removed from manager array
+        }
+
+        this.y -= this.riseSpeed * deltaTime;
+        // Sway calculation: sin wave based on age and frequency, around initialX
+        const currentSway = Math.sin(this.age * this.swayFrequency * 2 * Math.PI) * this.swayAmplitude;
+        this.element.style.left = `${this.initialX - this.size / 2 + currentSway}px`;
+        this.element.style.top = `${this.y - this.size / 2}px`;
+
+        // Fade out bubble towards the end of its life
+        const opacity = Math.max(0, 1 - (this.age / (this.lifeSpan * 0.9))); // Start fading a bit before end
+        this.element.style.opacity = opacity.toString();
+        return true; // Still active
+    }
+
+    remove() {
+        if (this.element && this.element.parentNode) {
+            this.element.parentNode.removeChild(this.element);
+        }
+        this.element = null; // Help with garbage collection
+    }
+}
+
 class Fish {
-    constructor(id, aquariumWidth, aquariumHeight, fishEmoji, fishSize) {
+    constructor(id, aquariumWidth, aquariumHeight, fishEmoji, fishSize, aquariumContainer) {
         this.id = id; // 魚的唯一標識
         this.aquariumWidth = aquariumWidth; // 魚缸寬度
         this.aquariumHeight = aquariumHeight; // 魚缸高度
@@ -85,6 +143,12 @@ class Fish {
 
         this.isTransforming = false; // 新增：標記魚是否準備轉換
         this.MAX_SIZE = 100;         // 新增：魚的最大尺寸
+
+        // Bubble related
+        this.aquariumContainer = aquariumContainer; // Store the container for bubbles
+        this.bubbles = []; // Array to hold this fish's bubbles
+        this.bubbleSpawnTimer = Math.random() * 2; // Initial random delay for first bubble
+        this.bubbleSpawnInterval = 2.5 + Math.random() * 3; // Spawn bubble every 2.5-5.5 seconds
     }
 
     /**
@@ -252,6 +316,25 @@ class Fish {
         if (this.element && !this.isTransforming) { // 只有在不轉換時才更新樣式
             this.updateElementStyle();
         }
+
+        // Bubble spawning logic
+        if (!this.isTransforming && this.aquariumContainer) {
+            this.bubbleSpawnTimer += deltaTime;
+            // Bubbles spawn a bit less frequently if fish is paused
+            const currentEffectiveInterval = this.isPaused ? this.bubbleSpawnInterval * 2.0 : this.bubbleSpawnInterval;
+
+            if (this.bubbleSpawnTimer > currentEffectiveInterval && this.bubbles.length < 5) { // Limit concurrent bubbles per fish
+                this.spawnBubble();
+                this.bubbleSpawnTimer = 0; // Reset timer
+                this.bubbleSpawnInterval = 2.5 + Math.random() * 3; // Randomize next interval
+            }
+        }
+        // Update and clean up bubbles for this fish
+        for (let i = this.bubbles.length - 1; i >= 0; i--) {
+            if (!this.bubbles[i].update(deltaTime)) { // update returns false if bubble is to be removed
+                this.bubbles.splice(i, 1);
+            }
+        }
     }
 
     /**
@@ -376,4 +459,23 @@ class Fish {
         this.element.style.fontSize = `${this.size}px`; // Ensure font size is based on this.size
         this.element.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${effectiveRotation}rad) scaleX(${scaleXToApply}) scaleY(1)`;
     }
+
+    spawnBubble() {
+        if (!this.aquariumContainer || !this.element) return; // Safety check
+
+        // Approximate mouth position: slightly in front of the center, along the fish's angle.
+        // Offset is relative to the fish's current size.
+        const mouthOffsetRatio = 0.45; // How far from center towards the "front" (0.0 to 0.5)
+        const offsetX = Math.cos(this.angle) * (this.size * mouthOffsetRatio);
+        const offsetY = Math.sin(this.angle) * (this.size * mouthOffsetRatio);
+
+        // Bubbles should ideally originate slightly above the fish's vertical center if it's horizontal,
+        // or more directly in front if it's angled. This simple offset works as a general approximation.
+        const bubbleX = this.x + offsetX;
+        const bubbleY = this.y + offsetY - (this.size * 0.1); // Spawn slightly above the midline
+
+        this.bubbles.push(new Bubble(bubbleX, bubbleY, this.aquariumContainer));
+    }
 }
+
+// export { Food, Fish, Bubble }; // Removed export for global script usage

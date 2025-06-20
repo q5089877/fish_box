@@ -1,4 +1,5 @@
 // main_app.js
+// import { Food, Fish } from './fish_new_stages.js'; // Removed import, classes will be global
 
 document.addEventListener('DOMContentLoaded', () => {
     const quoteContainer = document.getElementById('quote-container');
@@ -146,9 +147,7 @@ const buddhistQuotes = [
         const quote = buddhistQuotes[randomIndex];
         quoteTextElement.textContent = quote.text;
 
-        // 由於現在每次都載入新的，不再需要將語錄存儲到 localStorage 以便當日重用
-        // localStorage.removeItem('dailyQuoteText'); // 如果確定不再需要，可以考慮移除
-        // localStorage.removeItem('lastQuoteDate');  // 如果確定不再需要，可以考慮移除
+        // localStorage related comments removed as current logic always picks a random quote.
 
         quoteContainer.style.display = 'block';
         aquariumContainer.style.display = 'none'; // 初始隱藏魚缸
@@ -299,7 +298,7 @@ const buddhistQuotes = [
         const fishId = `fish-spawned-${Date.now()}-${Math.random().toString(16).slice(2)}`;
         const randomEmoji = availableFishEmojis[Math.floor(Math.random() * availableFishEmojis.length)];
         // 新魚使用初始大小
-        const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE);
+        const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE, aquariumContainer);
 
         const fishElement = document.createElement('span');
         fishElement.id = fishId;
@@ -322,7 +321,7 @@ const buddhistQuotes = [
             // 為每條魚隨機選擇 Emoji 和固定大小
             const randomEmoji = availableFishEmojis[Math.floor(Math.random() * availableFishEmojis.length)];
             // 魚的初始大小固定為 INITIAL_FISH_SIZE
-            const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE);
+            const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE, aquariumContainer);
             const fishElement = document.createElement('span');
             fishElement.id = fishId;
             fishElement.className = 'fish';
