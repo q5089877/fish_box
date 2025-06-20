@@ -324,49 +324,60 @@ class Fish {
             }
         }
 
-        // 7. 與其他魚的碰撞檢測與躲避
-        if (allFishes) {
-            for (const otherFish of allFishes) {
-                if (otherFish.id === this.id) continue; // 不與自己檢測
-                if (!otherFish.element) continue; // 如果對方魚還未完全初始化
 
-                const dxFish = otherFish.x - this.x;
-                const dyFish = otherFish.y - this.y;
-                const distanceFish = Math.sqrt(dxFish * dxFish + dyFish * dyFish);
+// 7. 與其他魚的碰撞檢測與躲避
+if (allFishes) {
+    for (const otherFish of allFishes) {
+        if (otherFish.id === this.id) continue; // 不與自己檢測
+        if (!otherFish.element) continue; // 如果對方魚還未完全初始化
 
-                // 使用 frameWidth (基於 baseFontSize) 和 currentVisualScale 估算半徑
-                const myRadius = this.frameWidth / 2; // 使用 fish.size
-                const otherRadius = otherFish.frameWidth / 2; // 使用 otherFish.size
+        const dxFish = otherFish.x - this.x;
+        const dyFish = otherFish.y - this.y;
+        const distanceFish = Math.sqrt(dxFish * dxFish + dyFish * dyFish);
 
-                if (distanceFish < myRadius + otherRadius) {
-                    // 碰撞檢測到！設置新的目標以躲避
-                    const repulsionAngle = Math.atan2(this.y - otherFish.y, this.x - otherFish.x); // 從 otherFish 指向 thisFish 的角度
-                    let repulsionDistance = 30 + Math.random() * 40; // 躲避目標的距離
+        // 使用 frameWidth (基於 baseFontSize) 和 currentVisualScale 估算半徑
+        const myRadius = this.frameWidth / 2; // 使用 fish.size
+        const otherRadius = otherFish.frameWidth / 2; // 使用 otherFish.size
 
-                    // 害羞的魚躲得更遠
-                    if (this.behaviorType === 'shy') {
-                        repulsionDistance = 60 + Math.random() * 50;
-                    }
+        if (distanceFish < myRadius + otherRadius) {
+            // 立即推開彼此
+            const overlap = myRadius + otherRadius - distanceFish + 1; // +1避免浮點誤差
+            const repulsionAngle = Math.atan2(this.y - otherFish.y, this.x - otherFish.x);
 
-                    this.targetX = this.x + Math.cos(repulsionAngle) * repulsionDistance;
-                    this.targetY = this.y + Math.sin(repulsionAngle) * repulsionDistance;
+            // 自己往外推
+            this.x += Math.cos(repulsionAngle) * (overlap / 2);
+            this.y += Math.sin(repulsionAngle) * (overlap / 2);
+            // 若你想兩邊都推（可選）：解開註解
+            // otherFish.x -= Math.cos(repulsionAngle) * (overlap / 2);
+            // otherFish.y -= Math.sin(repulsionAngle) * (overlap / 2);
 
-                    // 確保新目標在邊界內
-                    const boundaryMargin = 20; // 邊界緩衝
-                    this.targetX = Math.max(boundaryMargin, Math.min(this.aquariumWidth - boundaryMargin, this.targetX));
-                    this.targetY = Math.max(boundaryMargin, Math.min(this.aquariumHeight - boundaryMargin, this.targetY));
-
-                    // 可以選擇立即稍微改變角度或增加一點速度
-                    // this.angle = repulsionAngle; // 可能太突兀
-                    // 害羞的魚在躲避後有更高機率暫停
-                    if (this.behaviorType === 'shy' && Math.random() < 0.5) {
-                        this.isPaused = true;
-                        this.pauseEndTime = Date.now() + (this.minPauseDuration + Math.random() * (this.maxPauseDuration - this.minPauseDuration));
-                    }
-                    break; // 每幀只處理一次碰撞躲避
-                }
+            // 設定新的目標點
+            let repulsionDistance = 30 + Math.random() * 40;
+            if (this.behaviorType === 'shy') {
+                repulsionDistance = 60 + Math.random() * 50;
             }
+            this.targetX = this.x + Math.cos(repulsionAngle) * repulsionDistance;
+            this.targetY = this.y + Math.sin(repulsionAngle) * repulsionDistance;
+
+            // 提高速度，讓分開更快
+            this.speed = this.baseSpeedMax;
+
+            // 邊界處理
+            const boundaryMargin = 20;
+            this.targetX = Math.max(boundaryMargin, Math.min(this.aquariumWidth - boundaryMargin, this.targetX));
+            this.targetY = Math.max(boundaryMargin, Math.min(this.aquariumHeight - boundaryMargin, this.targetY));
+
+            // 害羞的魚在躲避後有更高機率暫停
+            if (this.behaviorType === 'shy' && Math.random() < 0.5) {
+                this.isPaused = true;
+                this.pauseEndTime = Date.now() + (this.minPauseDuration + Math.random() * (this.maxPauseDuration - this.minPauseDuration));
+            }
+            break; // 每幀只處理一次碰撞躲避
         }
+    }
+}
+
+        
         // 8. 更新 DOM 元素樣式 (移除了 updateAnimationFrame)
         if (this.element && !this.isTransforming) { // 只有在不轉換時才更新樣式
             this.updateElementStyle();
