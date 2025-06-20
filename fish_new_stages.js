@@ -179,9 +179,9 @@ class Fish {
             this.turnSpeedMin = 1.5;
             this.turnSpeedMax = 2.5;
             this.pauseChance = 0.001; // 調整：降低暫停頻率 (約每 5-6 秒一次 @60fps)
-            this.minPauseDuration = 1000;
-            this.maxPauseDuration = 3000;
-            this.foodDetectionMultiplier = 4;
+            this.minPauseDuration = 1200;
+            this.maxPauseDuration = 2500;
+            this.foodDetectionMultiplier = 6;
             // 害羞的魚在設定新目標時，更傾向於魚缸的下半部分
         }
 
