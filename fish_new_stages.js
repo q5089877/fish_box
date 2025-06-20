@@ -104,7 +104,7 @@ class Bubble {
 }
 
 class Fish {
-    constructor(id, aquariumWidth, aquariumHeight, fishEmoji, fishSize, aquariumContainer) {
+    constructor(id, aquariumWidth, aquariumHeight, fishEmoji, fishSize, aquariumContainer, behaviorType = 'normal') {
         this.id = id; // 魚的唯一標識
         this.aquariumWidth = aquariumWidth; // 魚缸寬度
         this.aquariumHeight = aquariumHeight; // 魚缸高度
@@ -118,11 +118,8 @@ class Fish {
         this.targetX = Math.random() * aquariumWidth;
         this.targetY = Math.random() * aquariumHeight;
 
-        // 移動屬性
-        this.speed = 1 + Math.random() * 1; // 基礎速度 (pixels per 60 frames)
-        this.turnSpeed = 0.05 + Math.random() * 0.05; // 轉向速度 (radians per 60 frames)
-        this.isPaused = false;
-        this.pauseEndTime = 0;
+        // 行為相關屬性 (將在下方根據 behaviorType 初始化)
+        this.behaviorType = behaviorType;
 
         // 成長相關屬性已移除
 
@@ -149,6 +146,48 @@ class Fish {
         this.bubbles = []; // Array to hold this fish's bubbles
         this.bubbleSpawnTimer = Math.random() * 2; // Initial random delay for first bubble
         this.bubbleSpawnInterval = 2.5 + Math.random() * 3; // Spawn bubble every 2.5-5.5 seconds
+
+        // 初始化行為參數
+        this.isPaused = false;
+        this.pauseEndTime = 0;
+        this._initializeBehaviorParameters();
+    }
+
+    _initializeBehaviorParameters() {
+        // 預設 (normal)
+        this.baseSpeedMin = 20; // 速度單位改為 像素/秒
+        this.baseSpeedMax = 50;
+        this.turnSpeedMin = 1.5; // 轉向速度單位改為 弧度/秒
+        this.turnSpeedMax = 3.0;
+        this.pauseChance = 0.002; // 每幀暫停的機率 (約每 8 秒一次，如果 60fps)
+        this.minPauseDuration = 1500; // ms
+        this.maxPauseDuration = 3500; // ms
+        this.foodDetectionMultiplier = 6; // 偵測食物範圍 = 魚大小 * 此倍數
+
+        if (this.behaviorType === 'active') {
+            this.baseSpeedMin = 45;
+            this.baseSpeedMax = 90;
+            this.turnSpeedMin = 2.5;
+            this.turnSpeedMax = 4.5;
+            this.pauseChance = 0.0008; // 非常不常暫停 (約每 20 秒一次)
+            this.minPauseDuration = 300;
+            this.maxPauseDuration = 1000;
+            this.foodDetectionMultiplier = 8;
+        } else if (this.behaviorType === 'shy') {
+            this.baseSpeedMin = 10;
+            this.baseSpeedMax = 30;
+            this.turnSpeedMin = 1.0;
+            this.turnSpeedMax = 2.0;
+            this.pauseChance = 0.008; // 比較常暫停 (約每 2 秒一次)
+            this.minPauseDuration = 2500;
+            this.maxPauseDuration = 5000;
+            this.foodDetectionMultiplier = 4;
+            // 害羞的魚在設定新目標時，更傾向於魚缸的下半部分
+        }
+
+        // 根據範圍設定初始隨機速度和轉向速度
+        this.speed = this.baseSpeedMin + Math.random() * (this.baseSpeedMax - this.baseSpeedMin);
+        this.turnSpeed = this.turnSpeedMin + Math.random() * (this.turnSpeedMax - this.turnSpeedMin);
     }
 
     /**
@@ -187,9 +226,9 @@ class Fish {
         }
 
         // 1. 隨機暫停 (僅在不尋找食物時)
-        if (!this.isSeekingFood && Math.random() < 0.001) {
+        if (!this.isSeekingFood && Math.random() < this.pauseChance) {
             this.isPaused = true;
-            this.pauseEndTime = Date.now() + (1000 + Math.random() * 1000); // 暫停 1-3 秒
+            this.pauseEndTime = Date.now() + (this.minPauseDuration + Math.random() * (this.maxPauseDuration - this.minPauseDuration));
             return;
         }
 
@@ -227,19 +266,19 @@ class Fish {
         while (angleDifference > Math.PI) angleDifference -= 2 * Math.PI;
         while (angleDifference < -Math.PI) angleDifference += 2 * Math.PI;
 
-        const turnStep = this.turnSpeed * (deltaTime * 60); // 根據 deltaTime 調整轉速
+        const turnStep = this.turnSpeed * deltaTime; // 轉速單位已是 弧度/秒
         if (Math.abs(angleDifference) > 0.01) { // 只有在角度差較大時才轉向
             if (Math.abs(angleDifference) > turnStep) {
                 this.angle += Math.sign(angleDifference) * turnStep;
             } else {
                 this.angle = targetAngle;
             }
-            // 再次正規化角度，保持在 0 到 2*PI
+            // 再次正規化角度，保持在 0 到 2*PI (或 -PI 到 PI，取決於偏好)
             this.angle = (this.angle + 2 * Math.PI) % (2 * Math.PI);
         }
 
         // 4. 移動
-        const currentSpeed = this.speed * (deltaTime * 60); // 根據 deltaTime 調整速度
+        const currentSpeed = this.speed * deltaTime; // 速度單位已是 像素/秒
         this.x += Math.cos(this.angle) * currentSpeed;
         this.y += Math.sin(this.angle) * currentSpeed;
 
@@ -270,12 +309,18 @@ class Fish {
                     } else {
                         this.setNewTarget(); // 吃完後設定新隨機目標
                     }
-                    this.speed = 0.8 + Math.random() * 1.4; // 吃完後可能改變速度
+                    // 吃完後重新隨機化速度 (所有類型都適用，活躍的魚變化可能更明顯)
+                    this.speed = this.baseSpeedMin + Math.random() * (this.baseSpeedMax - this.baseSpeedMin);
                 }
             } else if (!this.isSeekingFood) {
                 // 到達隨機目標點
                 this.setNewTarget();
-                this.speed = 0.8 + Math.random() * 1.4;
+                // 到達目標後重新隨機化速度 (所有類型都適用)
+                this.speed = this.baseSpeedMin + Math.random() * (this.baseSpeedMax - this.baseSpeedMin);
+                // 活躍的魚在到達目標後，可以有一定機率再次改變轉向速度，增加不可預測性
+                if (this.behaviorType === 'active' && Math.random() < 0.3) {
+                    this.turnSpeed = this.turnSpeedMin + Math.random() * (this.turnSpeedMax - this.turnSpeedMin);
+                }
             }
         }
 
@@ -296,7 +341,12 @@ class Fish {
                 if (distanceFish < myRadius + otherRadius) {
                     // 碰撞檢測到！設置新的目標以躲避
                     const repulsionAngle = Math.atan2(this.y - otherFish.y, this.x - otherFish.x); // 從 otherFish 指向 thisFish 的角度
-                    const repulsionDistance = 30 + Math.random() * 40; // 躲避目標的距離
+                    let repulsionDistance = 30 + Math.random() * 40; // 躲避目標的距離
+
+                    // 害羞的魚躲得更遠
+                    if (this.behaviorType === 'shy') {
+                        repulsionDistance = 60 + Math.random() * 50;
+                    }
 
                     this.targetX = this.x + Math.cos(repulsionAngle) * repulsionDistance;
                     this.targetY = this.y + Math.sin(repulsionAngle) * repulsionDistance;
@@ -308,6 +358,11 @@ class Fish {
 
                     // 可以選擇立即稍微改變角度或增加一點速度
                     // this.angle = repulsionAngle; // 可能太突兀
+                    // 害羞的魚在躲避後有更高機率暫停
+                    if (this.behaviorType === 'shy' && Math.random() < 0.5) {
+                        this.isPaused = true;
+                        this.pauseEndTime = Date.now() + (this.minPauseDuration + Math.random() * (this.maxPauseDuration - this.minPauseDuration));
+                    }
                     break; // 每幀只處理一次碰撞躲避
                 }
             }
@@ -345,7 +400,7 @@ class Fish {
     findClosestFood(allFoods) {
         let closestFood = null;
         let minDistance = Infinity;
-        const detectionRadius = this.size * 7; // 魚的偵測食物範圍，例如自身大小的5倍
+        const detectionRadius = this.size * this.foodDetectionMultiplier;
 
         for (const food of allFoods) {
             if (food.isEaten) continue;
@@ -411,7 +466,8 @@ class Fish {
 
         if (needsNewTarget) {
             // 可以選擇稍微改變一下速度或轉向速度，讓回游更自然
-            this.speed = 1 + Math.random() * 1; // 重設一個隨機速度
+            // 根據行為類型重設一個隨機速度
+            this.speed = this.baseSpeedMin + Math.random() * (this.baseSpeedMax - this.baseSpeedMin);
         }
     }
 
@@ -421,8 +477,15 @@ class Fish {
     setNewTarget() {
         // 避免目標點太靠近當前位置或邊界
         const margin = 50;
-        this.targetX = margin + Math.random() * (this.aquariumWidth - 2 * margin);
-        this.targetY = margin + Math.random() * (this.aquariumHeight - 2 * margin);
+        if (this.behaviorType === 'shy') {
+            // 害羞的魚更喜歡魚缸的下半部，且更靠近邊緣
+            this.targetX = Math.random() < 0.5 ? margin + Math.random() * (this.aquariumWidth * 0.3) : this.aquariumWidth - margin - Math.random() * (this.aquariumWidth * 0.3);
+            this.targetY = (this.aquariumHeight / 2) + Math.random() * (this.aquariumHeight / 2 - margin);
+        } else {
+            this.targetX = margin + Math.random() * (this.aquariumWidth - 2 * margin);
+            this.targetY = margin + Math.random() * (this.aquariumHeight - 2 * margin);
+        }
+
     }
     /**
      * 更新魚的 DOM 元素的 CSS 樣式

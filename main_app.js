@@ -140,7 +140,21 @@ const buddhistQuotes = [
 
     // 可用的魚 Emoji 列表
     const availableFishEmojis = ['🐟', '🐠', '🐡', '🐳', '🐋', '🐙', '🦑', '🦐', '🦀'];
-    // fishGrowthStages constant removed as growth functionality is removed.
+
+    // 可用的魚行為類型
+    const fishBehaviors = ['normal', 'active', 'shy'];
+
+    // 新增：特定魚種與其預設行為的映射
+    const fishEmojiBehaviorMap = {
+        '🐟': 'normal', // 普通魚 - 正常
+        '🐠': 'active', // 熱帶魚 - 活躍
+        '🐡': 'shy',    // 河豚 - 害羞
+        '🐳': 'active', // 鯨魚 - 活躍 (體型大，可以更活躍些)
+        '🐋': 'normal', // 另一種鯨魚 - 正常
+        '🐙': 'shy',    // 章魚 - 害羞 (通常比較隱蔽)
+        '🦑': 'active', // 魷魚 - 活躍
+        // '🦐', '🦀' 沒有指定，將會隨機或使用預設
+    };
 
     // DOM elements for max fish control
     const decreaseFishButton = document.getElementById('decrease-fish');
@@ -305,8 +319,10 @@ const buddhistQuotes = [
 
         const fishId = `fish-spawned-${Date.now()}-${Math.random().toString(16).slice(2)}`;
         const randomEmoji = availableFishEmojis[Math.floor(Math.random() * availableFishEmojis.length)];
+        // 根據選擇的 Emoji 決定行為，如果未在映射中定義，則隨機選擇
+        const assignedBehavior = fishEmojiBehaviorMap[randomEmoji] || fishBehaviors[Math.floor(Math.random() * fishBehaviors.length)];
         // 新魚使用初始大小
-        const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE, aquariumContainer);
+        const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE, aquariumContainer, assignedBehavior);
 
         const fishElement = document.createElement('span');
         fishElement.id = fishId;
@@ -370,8 +386,10 @@ const buddhistQuotes = [
             const fishId = `fish-init-${i}-${Date.now()}`;
             // 為每條魚隨機選擇 Emoji 和固定大小
             const randomEmoji = availableFishEmojis[Math.floor(Math.random() * availableFishEmojis.length)];
+            // 根據選擇的 Emoji 決定行為，如果未在映射中定義，則隨機選擇
+            const assignedBehavior = fishEmojiBehaviorMap[randomEmoji] || fishBehaviors[Math.floor(Math.random() * fishBehaviors.length)];
             // 魚的初始大小固定為 INITIAL_FISH_SIZE
-            const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE, aquariumContainer);
+            const fishInstance = new Fish(fishId, aquariumWidth, aquariumHeight, randomEmoji, INITIAL_FISH_SIZE, aquariumContainer, assignedBehavior);
             const fishElement = document.createElement('span');
             fishElement.id = fishId;
             fishElement.className = 'fish';
