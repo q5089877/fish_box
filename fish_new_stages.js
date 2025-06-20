@@ -178,7 +178,7 @@ class Fish {
             this.baseSpeedMax = 30;
             this.turnSpeedMin = 1.0;
             this.turnSpeedMax = 2.0;
-            this.pauseChance = 0.008; // 比較常暫停 (約每 2 秒一次)
+            this.pauseChance = 0.003; // 調整：降低暫停頻率 (約每 5-6 秒一次 @60fps)
             this.minPauseDuration = 2500;
             this.maxPauseDuration = 5000;
             this.foodDetectionMultiplier = 4;
