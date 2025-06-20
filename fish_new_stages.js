@@ -174,11 +174,11 @@ class Fish {
             this.maxPauseDuration = 1000;
             this.foodDetectionMultiplier = 8;
         } else if (this.behaviorType === 'shy') {
-            this.baseSpeedMin = 10;
-            this.baseSpeedMax = 30;
+            this.baseSpeedMin = 15;
+            this.baseSpeedMax = 40;
             this.turnSpeedMin = 1.0;
             this.turnSpeedMax = 2.0;
-            this.pauseChance = 0.003; // 調整：降低暫停頻率 (約每 5-6 秒一次 @60fps)
+            this.pauseChance = 0.0001; // 調整：降低暫停頻率 (約每 5-6 秒一次 @60fps)
             this.minPauseDuration = 2000;
             this.maxPauseDuration = 3000;
             this.foodDetectionMultiplier = 4;
