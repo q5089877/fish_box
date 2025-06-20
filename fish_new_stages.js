@@ -193,7 +193,7 @@ class Fish {
 
                     // 魚成長邏輯
                     if (this.size < this.MAX_SIZE) {
-                        this.size += 3;
+                        this.size += 4;
                         this.frameWidth = this.size; // 更新碰撞檢測的尺寸
                         this.frameHeight = this.size;
                         // 立刻更新樣式以顯示成長後的大小

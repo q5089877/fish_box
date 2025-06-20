@@ -188,25 +188,33 @@ const buddhistQuotes = [
     });
 
     // 添加單個水草裝飾 (用於魚轉換後)
-    function addSingleSeaweed(x, y, size) {
+    // x, y 是魚轉換前的中心點座標
+    function addSingleSeaweed(fishCenterX, fishCenterY, size) {
         const decoElement = document.createElement('span');
         decoElement.className = 'emoji-decoration'; // 使用現有的裝飾 class
         decoElement.textContent = SEAWEED_EMOJI_AFTER_TRANSFORM;
         decoElement.style.position = 'absolute';
         decoElement.style.fontSize = `${size}px`;
-
-        // 將水草放置在魚缸底部，靠近魚轉換時的 x 座標
-        const aquariumWidth = aquariumContainer.clientWidth;
-        const decoWidth = size; // 水草的近似寬度
-
-        // 確保 x 座標在魚缸內
-        let finalX = Math.max(0, Math.min(x - decoWidth / 2, aquariumWidth - decoWidth));
-
-        decoElement.style.left = `${finalX}px`;
-        // 放置在底部，可以有一個小的隨機 y 偏移
-        decoElement.style.bottom = `${Math.random() * 10}px`; // 距離底部 0-10px
         decoElement.style.userSelect = 'none'; // 防止選取
         decoElement.style.zIndex = '1'; // 確保在魚的下方 (如果魚的 z-index 更高)
+
+        const decoWidth = size;  // 水草 Emoji 的近似寬度
+        const decoHeight = size; // 水草 Emoji 的近似高度
+
+        const aquariumWidth = aquariumContainer.clientWidth;
+        const aquariumHeight = aquariumContainer.clientHeight;
+
+        // 計算水草的左上角 (top-left) 座標，使其視覺中心對齊魚的中心點
+        let newLeft = fishCenterX - decoWidth / 2;
+        let newTop = fishCenterY - decoHeight / 2;
+
+        // 確保水草完全在魚缸邊界內
+        newLeft = Math.max(0, Math.min(newLeft, aquariumWidth - decoWidth));
+        newTop = Math.max(0, Math.min(newTop, aquariumHeight - decoHeight));
+
+        decoElement.style.left = `${newLeft}px`;
+        decoElement.style.top = `${newTop}px`;
+        // 注意：由於我們現在使用 top 定位，之前的 bottom 樣式應被移除或不設置
 
         aquariumContainer.appendChild(decoElement);
     }
