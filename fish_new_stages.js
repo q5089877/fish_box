@@ -97,6 +97,7 @@ class Fish {
             this.element.style.position = 'absolute'; // 確保可以定位
             this.element.textContent = this.emoji;
             this.element.style.fontSize = `${this.size}px`;
+            this.element.style.zIndex = '10'; // 將魚的 z-index 設定為 10
             this.updateElementStyle();
         }
     }
